@@ -1,0 +1,99 @@
+package ${ejbPackage};
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.IdClass;
+import javax.persistence.MappedSuperclass;
+import javax.persistence.Table;
+
+#foreach (${packge} in ${tableAllPackages}) 
+import ${packge};
+#end
+#if($table.isSupportI18n())
+import java.util.Locale;
+#end
+ 
+/**
+ * 实体：${tableEntity} 
+ * 
+ * @author wacky for ermaster
+ */
+@MappedSuperclass
+@IdClass(Abstract${tableEntity}_PK.class)
+public abstract class Abstract${tableEntity} implements java.io.Serializable,Cloneable {
+
+	private static final long serialVersionUID = 1L;
+
+	// 字段
+#foreach (${column} in ${tableNotPkColumns}) 
+	// $column.getDescript()
+	@Column($column.getColumnAnnotation())
+	#if(${ColumnDefult} && $column.hasDefault())
+	@ColumnDefault(value="$column.getDefault()") 
+	#end
+	private $column.getJavaClass() $column.getName();
+#end
+#foreach (${column} in ${tablePkColumns}) 
+	// $column.getDescript()
+#if($column.isPk())
+	@Id 
+#end
+	@Column($column.getColumnAnnotation())
+	#if(${ColumnDefult} && $column.hasDefault())
+	@ColumnDefault(value="$column.getDefault()") 
+	#end
+	private $column.getJavaClass() $column.getName();
+#end
+	
+	// 构造
+	/** 缺省构造 */
+	public Abstract${tableEntity}() {
+	}
+	
+
+	/** 完全构造 */
+	public Abstract${tableEntity}($table.getAllParameters()) {
+#foreach (${column} in ${tableNotPkColumns}) 
+		this.$column.getName() = $column.getName();
+#end
+#foreach (${column} in ${tablePkColumns}) 
+		this.$column.getName() = $column.getName();
+#end
+	}
+
+
+	// 属性 
+#foreach (${column} in ${tableAllColumns}) 
+	public $column.getJavaClass() get$column.getCapitalName()() {
+		return this.$column.getName();
+	}
+
+	public void set$column.getCapitalName()($column.getJavaClass() $column.getName()) {
+		this.$column.getName() = $column.getName();
+	}
+#end
+
+	public abstract Object get${IdSuffixName}();
+
+	public Object clone() {
+		Object inst = null;
+		try{
+			inst = super.clone();
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		return inst;
+	}
+#if($table.isSupportI18n())
+	public String getI18nDescript(){
+		if (Locale.SIMPLIFIED_CHINESE.equals(Locale.getDefault())) {
+			return getDescript();
+		} else if (Locale.ENGLISH.equals(Locale.getDefault())) {
+			return getDescript1();
+		} else {
+			return getDescript2();
+		}
+	}
+#end
+}

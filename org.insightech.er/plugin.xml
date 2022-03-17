@@ -107,6 +107,36 @@
 			eclipseRuntime="true" />
 			
 	</extension>
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            id="org.insightech.er.wacky.contribution1"
+            objectClass="org.eclipse.core.resources.IFile"
+            nameFilter="*.erm"> 
+         <menu
+               id="org.insightech.er.wacky.menu1"
+               label="ERMaster Export"
+               path="additions">
+            <separator
+                  name="group1">
+            </separator>
+         </menu>
+         <action
+               class="org.insightech.er.wacky.popup.actions.ERMasterExportDDLAction"
+               enablesFor="1"
+               id="org.insightech.er.wacky.ddlAction"
+               label="DDL"
+               menubarPath="org.insightech.er.wacky.menu1/group1">
+         </action>
+         <action
+               class="org.insightech.er.wacky.popup.actions.ERMasterExportEJBAction"
+               enablesFor="1"
+               id="org.insightech.er.wacky.ejbAction"
+               label="EJB"
+               menubarPath="org.insightech.er.wacky.menu1/group1">
+         </action>
+      </objectContribution>
+   </extension>
 	
 	
 	

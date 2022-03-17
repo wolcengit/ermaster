@@ -1,0 +1,39 @@
+package ${ejbPackage};
+
+import javax.persistence.Column;
+import javax.persistence.Id;
+#foreach (${packge} in ${tablePkPackages}) 
+import ${packge};
+#end
+/**
+ * 实体主键：${tableEntity}${IdSuffix} 
+ * ${tableDescript}  
+ *  
+ * @author wacky for ermaster
+ */
+public class ${tableEntity}${IdSuffix} extends ${tableAbstractEntity}${IdSuffix} implements java.io.Serializable {
+
+	private static final long serialVersionUID = 1L;
+
+	// 构造
+
+	/** 缺省构造 */
+	public ${tableEntity}${IdSuffix}() {
+		super();
+	}
+
+	/** 完全构造 */
+	public ${tableEntity}${IdSuffix}($table.getPkParameters()) {
+		super($table.getPkCallParameters());
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		return super.equals(other);
+	}
+
+	@Override
+	public int hashCode() {
+		return super.hashCode();
+	}
+}

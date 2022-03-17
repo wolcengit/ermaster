@@ -1,0 +1,61 @@
+package ${ejbPackage};
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+#foreach (${packge} in ${tableAllPackages}) 
+import ${packge};
+#end
+#if($table.isSupportI18n())
+import java.util.Locale;
+#end
+ 
+/**
+ * 实体：${tableEntity} 
+ * ${tableDescript}  
+ * 
+ * @author wacky for ermaster
+ */
+${tablePKDescript}
+@Entity
+@Table(name = "$table.getName()")
+#if($table.isSupportSync())
+@TableSynch
+#end
+#if($table.isSupportEmergency())
+@TableEmergency
+#end
+public class ${tableEntity} extends ${tableAbstractEntity} implements java.io.Serializable,Cloneable {
+
+	private static final long serialVersionUID = 1L;
+
+	// 构造
+	/** 缺省构造 */
+	public ${tableEntity}() {
+		super();
+	}
+	
+	/** 主键构造 */
+	public ${tableEntity}($tablePk.getJavaClass() id) {
+		super(id);
+	}
+
+	/** 完全构造 */
+	public ${tableEntity}($table.getAllParameters()) {
+		super($table.getAllCallParameters());
+	}
+
+	
+	public Object clone() {
+		Object inst = null;
+		try{
+			inst = super.clone();
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		return inst;
+	}
+
+}

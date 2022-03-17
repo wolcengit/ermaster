@@ -1,0 +1,67 @@
+package ${ejbPackage}.binding;
+
+import java.beans.PropertyChangeListener;
+
+/**
+ * 实体代理接口：FoxBindingProxy 
+ * 
+ * @author wacky for ermaster
+ */
+public interface IFoxBindingProxy<T>  {
+	
+	public void addPropertyChangeListener(PropertyChangeListener listener);
+	
+	public void removePropertyChangeListener(PropertyChangeListener listener);
+	
+	public void firePropertyChange(String propertyName, Object oldValue, Object newValue) ;
+		
+	public boolean isEquals(Object oldValue,Object newValue);
+	
+	/**
+	 * 获取字段名称数组(第一个是表名称)
+	 */ 
+	public String[] getProperties();
+	
+	/**
+	 * 获取主键字段名称数组 
+	 */ 
+	public String[] getPkProperties();
+	
+	/**
+	 * 按字段名称获取值
+	 */ 
+	public Object getPropertyValue(String column);
+	
+	/**
+	 * 按字段名称设置值
+	 */ 
+	public void setPropertyValue(String column,Object value);
+	
+	/**
+	 * 按字段名称获取组件名称
+	 */ 
+	public String getComponentName(String column);
+	
+	/**
+	 * 获取实体名称
+	 */ 
+	public String getEntityName();
+	/**
+	 * 获取实体值
+	 */ 
+	public T getEntityValue();
+	
+	/**
+	 * 设置实体值
+	 */ 
+	public void setEntityValue(T value);
+	
+	
+	/**
+	 * 获取属性类型
+	 * @param column
+	 * @return
+	 */
+	public Class<?> getPropType(String column);
+	
+}

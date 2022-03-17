@@ -1,0 +1,164 @@
+package ${ejbPackage}.binding;
+
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.persistence.Column;
+import javax.persistence.Id;
+
+/**
+ * 实体绑定类实现
+ * 
+ * @author tata
+ * @param 实体
+ */
+public class EntityBindingProxy<T> extends FoxBindingProxy<T> {
+	private static Map<Class<?>, EntityInfo> cachedEntityInfo = new HashMap<Class<?>, EntityInfo>(); 
+	
+	private T entity;
+	private EntityInfo entityInfo;
+	
+	public EntityBindingProxy(T entity) {
+		this.entity = entity;
+		initEntity();
+	}
+	
+	private void initEntity() {
+		Class<?> clazz = entity.getClass();
+		if(!cachedEntityInfo.containsKey(clazz)) {
+			EntityInfo entityInfo = new EntityInfo();
+			
+			entityInfo.entityName = clazz.getSimpleName().toLowerCase();
+			entityInfo.props = new ArrayList<String>();
+			entityInfo.idProps = new ArrayList<String>();
+			entityInfo.pds = new HashMap<String, PropertyDescriptor>();
+			
+			Field[] fields = clazz.getDeclaredFields();
+			if(fields.length == 0 || (fields.length == 1 && fields[0].getName().equals("serialVersionUID"))){
+				fields = clazz.getSuperclass().getDeclaredFields();
+			}
+			for(Field field : fields){
+				String name = field.getName();
+				if (field.isAnnotationPresent(Id.class)) {
+					entityInfo.idProps.add(name);
+				}
+				if (field.isAnnotationPresent(Column.class)) {
+					entityInfo.props.add(name);
+					try {
+						PropertyDescriptor pd = new PropertyDescriptor(name, clazz);
+						entityInfo.pds.put(name, pd);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+				
+			}
+			
+			cachedEntityInfo.put(clazz, entityInfo);
+		}
+		this.entityInfo = cachedEntityInfo.get(clazz);
+	}
+
+	@Override
+	public String getComponentName(String column) {
+		return (getEntityName() + "." + column).toLowerCase();
+	}
+	/*
+	@Override
+	public String getComponentName2(String column) {
+		return getComponentName(column);
+	}
+    */
+	@Override
+	public String getEntityName() {
+		return this.entityInfo.entityName;
+	}
+
+	@Override
+	public T getEntityValue() {
+		return this.entity;
+	}
+	
+	public T getEntity() {
+		return getEntityValue();
+	}
+
+	@Override
+	public String[] getPkProperties() {
+		return this.entityInfo.idProps.toArray(new String[] {});
+	}
+
+	@Override
+	public String[] getProperties() {
+		return this.entityInfo.props.toArray(new String[] {});
+	}
+	
+	@Override
+	public Object getPropertyValue(String column) {
+		PropertyDescriptor pd = this.entityInfo.pds.get(column);
+		if(pd != null) {
+			try {
+				return pd.getReadMethod().invoke(entity);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return null;
+	}
+
+	public void setEntityValue(T value) {
+		this.entity = value;
+	}
+	
+	/**
+	 * 直接设置实体的属性值，类似于实体的setXXX方法
+	 * 如果只想设置值而不进行值变化通知，应该使用此方法
+	 * @param column 字段属性名
+	 * @param value 值
+	 */
+	public void setPropertyValueDirect(String column, Object value) {
+		setPropertyValue(column, value, false);
+	}
+
+	@Override
+	public void setPropertyValue(String column, Object value) {
+		setPropertyValue(column, value, true);
+	}
+	
+	private void setPropertyValue(String column, Object value, boolean dofire) {
+		if(column == null) return; 
+		
+		PropertyDescriptor pd = this.entityInfo.pds.get(column);
+		if(pd != null) {
+			try {
+				Method setMethod = pd.getWriteMethod();
+				if (dofire) {
+					Method getMethod = pd.getReadMethod();
+					Object oldValue = getMethod.invoke(entity);
+					Object newValue = value;
+					if (!isEquals(oldValue, newValue)) {
+						setMethod.invoke(entity, value);
+						firePropertyChange(column, oldValue, newValue);
+					}
+				} else {
+					setMethod.invoke(entity, value);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+	}
+	
+	private static class EntityInfo {
+	    String entityName;
+		ArrayList<String> props;
+		ArrayList<String> idProps;
+		Map<String, PropertyDescriptor> pds;
+	}
+	
+}

@@ -1,0 +1,93 @@
+package ${ejbPackage};
+
+#if(${EmbeddedId})
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
+#else
+import javax.persistence.Column;
+import javax.persistence.Id;
+#end
+#foreach (${packge} in ${tablePkPackages}) 
+import ${packge};
+#end
+/**
+ * 实体主键：Abstract${tableEntity}${IdSuffix} 
+ *  
+ * @author wacky for ermaster
+ */
+#if(${EmbeddedId})
+@Embeddable
+#end 
+public class Abstract${tableEntity}${IdSuffix} implements java.io.Serializable {
+
+	private static final long serialVersionUID = 1L;
+
+	// 字段
+#foreach (${column} in ${tablePkColumns}) 
+	// $column.getDescript()
+#if(${EmbeddedId})
+	@Column($column.getColumnAnnotation())
+	#if(${ColumnDefult} && $column.hasDefault())
+	@ColumnDefault(value="$column.getDefault()") 
+	#end
+#end
+	@Id 
+	@Column($column.getColumnAnnotation())
+	private $column.getJavaClass() $column.getName();
+#end
+
+	// 构造
+
+	/** 缺省构造 */
+	public Abstract${tableEntity}${IdSuffix}() {
+	}
+
+	/** 完全构造 */
+	public Abstract${tableEntity}${IdSuffix}($table.getPkParameters()) {
+#foreach (${column} in ${tablePkColumns}) 
+		this.$column.getName() = $column.getName();
+#end
+	}
+
+	// 属性
+#foreach (${column} in ${tablePkColumns}) 
+	public $column.getJavaClass() get$column.getCapitalName()() {
+		return this.$column.getName();
+	}
+
+	public void set$column.getCapitalName()($column.getJavaClass() $column.getName()) {
+		this.$column.getName() = $column.getName();
+	}
+	
+#end
+
+	public boolean equals(Object other) {
+		if ((this == other))
+			return true;
+		if ((other == null))
+			return false;
+		if (!(other instanceof ${tableEntity}${IdSuffix}))
+			return false;
+		${tableEntity}${IdSuffix} castOther = (${tableEntity}${IdSuffix}) other;
+		
+		boolean result = true;
+#foreach (${column} in ${tablePkColumns}) 
+		result = result
+				&& ((this.get$column.getCapitalName()() == castOther.get$column.getCapitalName()()) || 
+				    (this.get$column.getCapitalName()() != null && castOther.get$column.getCapitalName()() != null 
+				  && this.get$column.getCapitalName()().equals(castOther.get$column.getCapitalName()())));
+#end						
+		return result;
+	}
+
+	public int hashCode() {
+		int result = 17;
+
+#foreach (${column} in ${tablePkColumns}) 
+		result = 23 * result
+				+ (get$column.getCapitalName()() == null ? 0 : this.get$column.getCapitalName()().hashCode());
+#end						
+		return result;
+	}
+
+}

@@ -1,0 +1,199 @@
+package ${ejbPackage}.binding;
+
+#foreach (${packge} in ${tableAllPackages}) 
+import ${packge};
+#end
+import ${ejbPackage}.${tableEntity};
+#if($table.getPkSize() != 1)
+import ${ejbPackage}.${tableEntity}${IdSuffix};
+#end
+/**
+ * 实体代理：${tableEntity}BindingProxy 
+ * 
+ * @author wacky for ermaster
+ */
+public class ${tableEntity}BindingProxy extends FoxBindingProxy<${tableEntity}> {
+	// 字段常量
+	public static final String ENTITY = "$table.getName()";
+#foreach (${column} in ${tableAllColumns}) 
+	public static final String $column.getUpperName() = "$column.getName()";
+#end
+	public static final String[] PROPERTIES = new String[]{ENTITY
+#foreach (${column} in ${tableAllColumns}) 
+		,$column.getUpperName()
+#end
+	};
+	public static final String[] PKPROPERTIES = new String[]{
+#set($i = 0)	
+#foreach (${column} in ${tablePkColumns}) 
+		#if($i == 0) #else,#end $column.getUpperName()
+#set($i = 1)		
+#end
+	};
+	
+	// 构造
+	public ${tableEntity}BindingProxy() {
+		super();
+	}
+	
+	public ${tableEntity}BindingProxy(${tableEntity} entity) {
+		super(entity);
+	}
+
+	// 属性 
+#foreach (${column} in ${tableAllColumns}) 
+	public $column.getJavaClass() get$column.getCapitalName()() {
+		return (this.entity==null)?null:this.entity.get$column.getCapitalName()();
+	}
+
+	public void set$column.getCapitalName()($column.getJavaClass() $column.getName()) {
+		if(this.entity==null) return;
+		Object oldValue = this.entity.get$column.getCapitalName()();
+		Object newValue = $column.getName();
+		if(!isEquals(oldValue,newValue)){
+			this.entity.set$column.getCapitalName()($column.getName());
+			firePropertyChange(${tableEntity}BindingProxy.$column.getUpperName(), oldValue, newValue);
+		} 
+	}
+#end
+
+	// 主键
+#if($table.isSinglePk())
+	public $tablePk.getJavaClass() get${IdSuffixName}() {
+		return (this.entity==null)?null:this.entity.get${IdSuffixName}();
+	}
+	public void set${IdSuffixName}($tablePk.getJavaClass() ${IdSuffixVar}) {
+		if(this.entity==null) return;
+		if(${IdSuffixVar}==null) return;
+		Object oldValue = this.entity.get${IdSuffixName}();
+		Object newValue = ${IdSuffixVar};
+		if(!isEquals(oldValue,newValue)){
+			this.entity.set${IdSuffixName}(${IdSuffixVar});
+			firePropertyChange(${tableEntity}BindingProxy.$tablePk.getUpperName(), oldValue, newValue);
+		} 
+	}
+#else
+	public ${tableEntity}${IdSuffix} get${IdSuffixName}() {
+		return (this.entity==null)?null:this.entity.get${IdSuffixName}();
+	}
+
+	public void set${IdSuffixName}(${tableEntity}${IdSuffix} ${IdSuffixVar}) {
+		if(this.entity==null) return;
+		if(${IdSuffixVar} == null) return;
+#foreach (${column} in ${tablePkColumns}) 
+		set$column.getCapitalName()(${IdSuffixVar}.get$column.getCapitalName()());
+#end
+	}
+#end	
+
+#if($table.isSupportI18n())
+	public String getI18nDescript(){
+		return (this.entity==null)?null:this.entity.getI18nDescript();
+	}
+#end
+
+	/**
+	 * 按字段名称获取值
+	 */ 
+	public Object getPropertyValue(String column){
+		if(column == null) return null;
+		
+#foreach (${column} in ${tableAllColumns}) 
+		if(column.equals($column.getUpperName())){
+			return this.get$column.getCapitalName()();
+		}
+		
+#end
+		if(column.equals(ENTITY)){
+			return this.entity;
+		}
+		return null;
+	}
+
+	/**
+	 * 按字段名称设置值
+	 */ 
+	public void setPropertyValue(String column,Object value){
+		if(column == null) return ;
+		
+#foreach (${column} in ${tableAllColumns}) 
+		if(column.equals($column.getUpperName())){
+#if($column.getJavaClass() == "Double")
+			this.set$column.getCapitalName()(value==null?((Double)null):Double.valueOf(((Number)value).doubleValue()));
+#elseif($column.getJavaClass() == "Float")		
+			this.set$column.getCapitalName()(value==null?((Float)null):Float.valueOf(((Number)value).floatValue()));
+#elseif($column.getJavaClass() == "Long")		
+			this.set$column.getCapitalName()(value==null?((Long)null):Long.valueOf(((Number)value).longValue()));
+#elseif($column.getJavaClass() == "Integer")		
+			this.set$column.getCapitalName()(value==null?((Integer)null):Integer.valueOf(((Number)value).intValue()));
+#elseif($column.getJavaClass() == "Short")		
+			this.set$column.getCapitalName()(value==null?((Short)null):Short.valueOf(((Number)value).shortValue()));
+#elseif($column.getJavaClass() == "Byte")		
+			this.set$column.getCapitalName()(value==null?((Byte)null):Byte.valueOf(((Number)value).byteValue()));
+#else			
+			this.set$column.getCapitalName()(($column.getJavaClass())value);
+#end
+			return;
+		}
+		
+#end
+		
+		if(column.equals(ENTITY) && value instanceof ${tableEntity}){
+			this.entity = (${tableEntity})value;
+			return;
+		}
+	}
+	/**
+	 * 获取字段名称数组(第一个是表名称)
+	 */ 
+	public String[] getProperties(){
+		return ${tableEntity}BindingProxy.PROPERTIES;
+	}
+	/**
+	 * 获取主键字段名称数组 
+	 */ 
+	public String[] getPkProperties(){
+		return ${tableEntity}BindingProxy.PKPROPERTIES;
+	}
+	
+
+	/**
+	 * 按字段名称获取组件名称
+	 */ 
+	public String getComponentName(String column){
+		return ${tableEntity}BindingProxy.getComponentName2(column);
+	}
+	
+	public static String getComponentName2(String column){
+		if(column == null) return null;
+		
+#foreach (${column} in ${tableAllColumns}) 
+		if(column.equals($column.getUpperName())){
+			return ENTITY + "." + $column.getUpperName();
+		}
+		
+#end
+		return null;
+	}
+	
+	/**
+	 * 获取实体名称
+	 */ 
+	public String getEntityName(){
+		return ENTITY;
+	}
+	/**
+	 * 获取实体值
+	 */ 
+	public ${tableEntity} getEntityValue(){
+		return this.entity;
+	}
+	
+	/**
+	 * 设置实体值
+	 */ 
+	public void setEntityValue(${tableEntity} value){
+		this.entity = value;
+	}
+	
+}

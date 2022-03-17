@@ -1,0 +1,103 @@
+package ${ejbPackage}.binding;
+
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.lang.reflect.Method;
+import java.util.Date;
+
+/**
+ * 实体代理基类：FoxBindingProxy 
+ * 
+ * @author wacky for ermaster
+ */
+public abstract class FoxBindingProxy<T> implements IFoxBindingProxy<T> {
+	protected final PropertyChangeSupport changeSupport = new PropertyChangeSupport(this);
+	protected T entity;
+
+	public void addPropertyChangeListener(PropertyChangeListener listener){
+		changeSupport.addPropertyChangeListener(listener);
+	}
+	
+	public void removePropertyChangeListener(PropertyChangeListener listener){
+		changeSupport.removePropertyChangeListener(listener);
+	}
+	
+	public void firePropertyChange(String propertyName, Object oldValue, Object newValue) {
+		changeSupport.firePropertyChange(propertyName,oldValue,newValue);
+	}
+	
+	// 构造
+	public FoxBindingProxy() {
+		this.entity = null;
+	}
+	
+	public FoxBindingProxy(T entity) {
+		this.entity = entity;
+	}
+	
+	// 实体
+	public void setEntity(T entity) {
+		Object oldValue = this.entity;
+		Object newValue = entity;
+		if(!isEquals(oldValue,newValue)){
+			this.entity = entity;
+			firePropertyChange(getEntityName(), oldValue, newValue);
+		} 
+	}
+	
+	public T getEntity() {
+		return this.entity;
+	}
+	/**
+	 * 获取实体名称
+	 */ 
+	public abstract String getEntityName();
+	/**
+	 * 获取实体值
+	 */ 
+	public T getEntityValue(){
+		return this.entity;
+	}
+	
+	/**
+	 * 设置实体值
+	 */ 
+	public void setEntityValue(T value){
+		this.entity =  value;
+	}
+
+	/**
+	 * 对象值比较
+	 */ 
+	public boolean isEquals(Object oldValue,Object newValue){
+		if(oldValue == null && newValue != null){
+			return false;
+		}
+		if(oldValue != null && newValue == null){
+			return false;
+		}
+		if(oldValue == null && newValue == null){
+			return true;
+		}
+		if(oldValue.equals(newValue)){
+			return true;
+		}
+		if((oldValue instanceof Date) && (newValue instanceof Date)){
+			if(((Date)oldValue).getTime() == ((Date)newValue).getTime()){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public Class<?> getPropType(String column){
+		String name = "get"+column.substring(0, 1).toUpperCase()+column.substring(1);
+		try {
+			Method dm = this.getClass().getDeclaredMethod(name);
+			return dm.getReturnType();
+		} catch (Exception e) {
+			//e.printStackTrace();
+		}
+		return null;
+	}
+}

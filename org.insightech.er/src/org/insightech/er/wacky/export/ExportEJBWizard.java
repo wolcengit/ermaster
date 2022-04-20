@@ -20,7 +20,7 @@ class ExportEJBWizard extends Wizard {
         if (section == null) {
             section = settings.addNewSection("EJBWizard");
             section.put("srcpath", "/FoxhisEntity/src/main/java");
-            section.put("packagename", "com.foxhis.com");
+            section.put("packagename", "com.foxhis.entity");
             section.put("suffix", "_PK");
 
             section.put("embeddedid", false);
@@ -34,7 +34,7 @@ class ExportEJBWizard extends Wizard {
         	section.put("srcpath", "/FoxhisEntity/src/main/java");
         }
         if (section.get("packagename") == null) {
-        	 section.put("packagename", "com.foxhis.com");
+        	 section.put("packagename", "com.foxhis.entity");
         }
         if (section.get("suffix") == null) {
         	section.put("suffix", "_PK");

@@ -125,7 +125,6 @@ public class ExportEJBWizardPage extends WizardPage {
 		rbCamelName.setText("Camel Name");
 
 		rbCapitalName = new Button(grpEntityFieldMode, SWT.RADIO);
-		rbCapitalName.setSelection(true);
 		rbCapitalName.setText("Capital Name");
 
 		cbxEntityClass = new Button(container, SWT.CHECK);
@@ -147,9 +146,15 @@ public class ExportEJBWizardPage extends WizardPage {
 		this.txtOutputFolder.setText(section.get("srcpath"));
 		this.txtPackageName.setText(section.get("packagename"));
 		this.txtIdSuffix.setText(section.get("suffix"));
-		
+
 		this.rbIdEmbedded.setSelection(section.getBoolean("embeddedid"));
-		this.rbCamelName.setSelection(section.getBoolean("camel"));
+
+		Boolean camelNameSelected = section.getBoolean("camel");
+		if (camelNameSelected == null){
+			camelNameSelected = false;
+		}
+		this.rbCamelName.setSelection(camelNameSelected);
+		this.rbCapitalName.setSelection(!camelNameSelected);
 		
 		this.cbxBaseClass.setSelection(section.getBoolean("base"));
 		this.cbxEntityBindingProxy.setSelection(section.getBoolean("entity"));

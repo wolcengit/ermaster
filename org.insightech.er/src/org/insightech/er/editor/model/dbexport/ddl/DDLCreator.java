@@ -512,7 +512,7 @@ public abstract class DDLCreator {
 			ddl.append(replaceLF(tableComment, LF() + "-- "));
 			ddl.append(LF());
 		}
-		ddl.append("CREATE TABLE ");
+		ddl.append("CREATE TABLE IF NOT EXISTS ");
 		ddl.append(filterName(table.getNameWithSchema(diagram.getDatabase())));
 		ddl.append(LF() + "(" + LF());
 

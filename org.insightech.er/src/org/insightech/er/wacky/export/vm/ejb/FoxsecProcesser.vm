@@ -26,7 +26,7 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
         ObjFacadeBase objFacadeBase = EjbFacadeUtil.getFacadeLocal(ObjFacadeBase.class);
         #if($tablePkColumns.size() == 1)
         #foreach (${column} in ${tablePkColumns}) 
-        ${tableEntity} secent = ($tableEntity) objFacadeBase.findById(String.class, ent.get$column.getCapitalName()());
+        ${tableEntity} secent = ($tableEntity) objFacadeBase.findById(${tableEntity}.class, ent.get$column.getCapitalName()());
         #end
         #elseif($tablePkColumns.size() > 1)
         ${tableEntity}_PK secpk = new ${tableEntity}_PK();
@@ -234,7 +234,7 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
         ObjFacadeBase objFacadeBase = EjbFacadeUtil.getFacadeLocal(ObjFacadeBase.class);
         #if($tablePkColumns.size() == 1)
         #foreach (${column} in ${tablePkColumns}) 
-        ${tableEntity} secent = (${tableEntity}) objFacadeBase.findById(String.class, ent.get$column.getCapitalName()());
+        ${tableEntity} secent = (${tableEntity}) objFacadeBase.findById(${tableEntity}.class, ent.get$column.getCapitalName()());
         #end
         #elseif($tablePkColumns.size() > 1)
         ${tableEntity}_PK secpk = new ${tableEntity}_PK();

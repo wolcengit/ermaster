@@ -259,4 +259,26 @@ public class WackyTable
         }
         return "";
     }
+    
+    /**
+     * 获取当前表需要加密的字段源集
+     * @return
+     */
+    public List<String> getSecurityOriginColumns(){
+    	List<String> columns = null;
+    	for (WackyColumn wackyColumn : allColumns) {
+    		String originColumn = wackyColumn.getOriginColumn();
+    		if (originColumn == null) {
+    			continue;
+    		}
+    		if (columns == null) {
+    			columns = new ArrayList();
+    		}
+    		if (columns.contains(originColumn)) {
+    			continue;
+    		}
+    		columns.add(originColumn);
+    	}
+    	return columns;
+    }
 }

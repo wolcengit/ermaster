@@ -3,6 +3,9 @@ package org.insightech.er.wacky.erutil;
 import org.insightech.er.editor.model.diagram_contents.element.node.table.column.*;
 import org.insightech.er.editor.model.*;
 import org.insightech.er.wacky.export.*;
+import org.eclipse.core.runtime.ILog;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.insightech.er.*;
 import org.insightech.er.util.*;
 import org.insightech.er.db.*;
@@ -144,6 +147,32 @@ public class WackyColumn
         }
         return description;
     }
+    /**
+     * 获取加密来源字段
+     * @return
+     */
+    public String getOriginColumn() {
+    	 String description = this.column.getDescription();
+         if (description == null) {
+             description = "";
+         }
+         log(IStatus.INFO, getName()+" 的description:"+description);
+         int secOriginIndex= description.indexOf("sec_origin=");
+         int endIndex = -1;
+         if(secOriginIndex != -1) {
+        	 secOriginIndex = secOriginIndex + 10;
+        	 endIndex = description.indexOf(";", secOriginIndex);
+         } else {
+        	 description = this.column.getLogicalName();
+        	 secOriginIndex= description.indexOf("的");
+        	 endIndex = secOriginIndex;
+        	 secOriginIndex = (secOriginIndex > 0 ? 0 : -1);
+         }
+         if (secOriginIndex == -1) {
+        	 return null;
+         }
+         return description.substring(secOriginIndex, endIndex);
+    }
     
     protected DBManager getDBManager() {
         return DBManagerFactory.getDBManager(this.diagram);
@@ -152,4 +181,9 @@ public class WackyColumn
     protected boolean doesNeedQuoteDefaultValue(final NormalColumn normalColumn) {
         return !normalColumn.getType().isNumber() && (!normalColumn.getType().isTimestamp() || Character.isDigit(normalColumn.getDefaultValue().toCharArray()[0]));
     }
+    
+    public void log(final int level, final String text) {
+		final ILog log = ERDiagramActivator.getDefault().getLog();
+		log.log((IStatus) new Status(level, "org.insightech.er.wacky", text));
+	}
 }

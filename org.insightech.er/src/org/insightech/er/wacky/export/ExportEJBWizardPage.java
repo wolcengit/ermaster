@@ -29,6 +29,8 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.dialogs.ISelectionStatusValidator;
 import org.eclipse.ui.model.WorkbenchContentProvider;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
+import org.eclipse.swt.events.SelectionListener;
+import java.util.function.Consumer;
 
 public class ExportEJBWizardPage extends WizardPage {
 	private Text txtOutputFolder;
@@ -43,6 +45,9 @@ public class ExportEJBWizardPage extends WizardPage {
 	private Button cbxEntityBindingProxy;
 	private Button cbxBaseClass;
 	private Button cbxEntityClass;
+	private Button cbxFoxsecurityProcesser;
+	private Text txtSecurityProcesser;
+	private Button btnSecurityProcesserOutputFolder;
 
 	protected ExportEJBWizardPage(String pageName) {
 		super(pageName);
@@ -150,15 +155,33 @@ public class ExportEJBWizardPage extends WizardPage {
 		this.rbIdEmbedded.setSelection(section.getBoolean("embeddedid"));
 
 		Boolean camelNameSelected = section.getBoolean("camel");
-		if (camelNameSelected == null){
-			camelNameSelected = false;
-		}
 		this.rbCamelName.setSelection(camelNameSelected);
 		this.rbCapitalName.setSelection(!camelNameSelected);
 		
 		this.cbxBaseClass.setSelection(section.getBoolean("base"));
 		this.cbxEntityBindingProxy.setSelection(section.getBoolean("entity"));
 		this.cbxEntityClass.setSelection(section.getBoolean("binding"));
+		
+		cbxFoxsecurityProcesser = new Button(container, SWT.CHECK);
+		cbxFoxsecurityProcesser.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				txtSecurityProcesser.setEnabled(cbxFoxsecurityProcesser.getSelection());
+				btnSecurityProcesserOutputFolder.setEnabled(cbxFoxsecurityProcesser.getSelection());
+			}
+		});
+		cbxFoxsecurityProcesser.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, false, false, 3, 1));
+		cbxFoxsecurityProcesser.setText("Create Foxsecurity Processer Class");
+		this.cbxFoxsecurityProcesser.setSelection(section.getBoolean("foxsec_processer"));
+		
+		txtSecurityProcesser = new Text(container, SWT.BORDER);
+		txtSecurityProcesser.setEnabled(cbxFoxsecurityProcesser.getSelection());
+		txtSecurityProcesser.setText("/FoxhisServer/src/main/java/com/foxhis/entity/processer");
+		txtSecurityProcesser.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
+		
+		btnSecurityProcesserOutputFolder = new Button(container, SWT.NONE);
+		btnSecurityProcesserOutputFolder.setEnabled(false);
+		btnSecurityProcesserOutputFolder.setText("   ...   ");
 	}
 
 	protected void do_btnOutputFolder_widgetSelected(SelectionEvent e) {
@@ -171,6 +194,12 @@ public class ExportEJBWizardPage extends WizardPage {
 
 	public IResource getOutputFolderResource() {
 		final String outputDir = this.txtOutputFolder.getText();
+		final IWorkspaceRoot wsroot = ResourcesPlugin.getWorkspace().getRoot();
+		return wsroot.findMember(outputDir);
+	}
+	
+	public IResource getFoxsecOutputFolderResource() {
+		final String outputDir = this.txtSecurityProcesser.getText();
 		final IWorkspaceRoot wsroot = ResourcesPlugin.getWorkspace().getRoot();
 		return wsroot.findMember(outputDir);
 	}
@@ -273,10 +302,11 @@ public class ExportEJBWizardPage extends WizardPage {
 
 		section.put("camel", this.rbCamelName.getSelection());
 		section.put("embeddedid", this.rbIdEmbedded.getSelection());
-
 		section.put("base", this.cbxBaseClass.getSelection());
 		section.put("entity", this.cbxEntityClass.getSelection());
 		section.put("binding", this.cbxEntityBindingProxy.getSelection());
+		section.put("foxsec_processer", this.cbxFoxsecurityProcesser.getSelection());
+		section.put("foxsec_processer_path", this.txtSecurityProcesser.getText().trim());
 
 		this.setErrorMessage((String) null);
 		this.setPageComplete(true);

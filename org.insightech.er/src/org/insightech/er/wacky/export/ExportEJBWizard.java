@@ -81,7 +81,9 @@ class ExportEJBWizard extends Wizard {
 			util.entity = section.getBoolean("entity");
 			util.binding = section.getBoolean("binding");
 			util.base = section.getBoolean("base");
-			
+			util.foxsecProcesser= section.getBoolean("foxsec_processer");
+			final IContainer foxsecPath = (IContainer) this.page.getFoxsecOutputFolderResource();
+			util.foxsecProcesserPath = foxsecPath.getLocation().toString();
 			if (!util.idsuffix.startsWith("@")) {
 				util.exportEjb();
 			} else {
@@ -105,6 +107,8 @@ class ExportEJBWizard extends Wizard {
 				
 				util2.binding = section.getBoolean("binding");
 				util2.base = section.getBoolean("base");
+				util2.foxsecProcesser= section.getBoolean("foxsec_processer");
+				util2.foxsecProcesserPath = foxsecPath.getLocation().toString();
 				
 				util2.exportAll();
 			}

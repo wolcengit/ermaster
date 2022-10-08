@@ -41,6 +41,8 @@ public class WackyExport {
 	public boolean camel;
 	public boolean binding;
 	public boolean base;
+	public boolean foxsecProcesser;
+	public String foxsecProcesserPath;
 	private WackyERDiagram diagram;
 	private TableSet tables;
 	private VelocityContext context;
@@ -246,6 +248,8 @@ public class WackyExport {
 				}
 				final WackyTable wt3 = new WackyTable(table, this.diagram.getDiagram(), util);
 				final String tableEntity3 = util.getName(wt3.getName());
+				this.context.put("originTable","");
+				this.context.put("originSecurityColumn",null);
 				this.context.put("table", (Object) wt3);
 				this.context.put("tableNotPkColumns", (Object) wt3.getNotPkColumns());
 				this.context.put("tablePkColumns", (Object) wt3.getPkColumns());
@@ -329,9 +333,23 @@ public class WackyExport {
 					filename = String.valueOf(outputPath) + bindingPath + "/" + tableEntity3 + "BindingProxy.java";
 					this.createFile(filetemplate, filename);
 				}
-			}
+				if(this.foxsecProcesser && tableEntity3.toLowerCase().startsWith("foxsec_")) {
+					try {
+						this.context.put("originTable",StringUtils.capitalize(tableEntity3.toLowerCase().substring(7, tableEntity3.length())));
+						this.context.put("originSecurityColumn",wt3.getSecurityOriginColumns());
+						filetemplate = String.valueOf(vmPath) + "FoxsecProcesser.vm";
+						filename = String.valueOf(foxsecProcesserPath) + "/" + StringUtils.capitalize(tableEntity3.toLowerCase()) + "_SecurityEntityProcesser.java";
+						this.createFile(filetemplate, filename);
+						log(IStatus.INFO, wt3.getSecurityOriginColumns().toString());
+					}catch (Exception e) {
+						e.printStackTrace();
+						log(IStatus.ERROR, e.getMessage());
+					}
+				}
+			} 
 		} catch (Exception e) {
 			e.printStackTrace();
+			log(2, e.getMessage());
 			return;
 		} finally {
 			if (monitor != null) {

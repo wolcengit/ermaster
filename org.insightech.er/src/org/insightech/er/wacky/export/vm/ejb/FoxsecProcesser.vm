@@ -10,6 +10,7 @@ import com.foxhis.entity.ejbutil.ObjFacadeBase;
 import com.foxhis.pms.biz.FoxPublicBiz;
 import com.foxhis.utils.FoxDesensitizedUtil;
 import com.foxhis.utils.SessionUtils;
+import com.foxhis.utils.FoxValidateUtil;
 import org.apache.commons.lang.StringUtils;
 
 import javax.ejb.Local;
@@ -111,7 +112,7 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
         #elseif(${securityColumn} == "mobile")
         //mobile
         String mobile = ent.getMobile();
-        if (StringUtils.isNotBlank(mobile) && mobile.matches("[1][3578]\\d{9}")) {
+        if (StringUtils.isNotBlank(mobile) && && FoxValidateUtil.isPhone(mobile)) {
             String mob0 = FoxSecurityHelper.encode(mobile);
             if (!mob0.equals(secent.getMob0())) {
                 // 更新
@@ -134,7 +135,7 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
         #elseif(${securityColumn} == "phone")
         //phone
         String phone = ent.getPhone();
-        if (StringUtils.isNotBlank(phone) && phone.matches("[1][3578]\\d{9}")) {
+        if (StringUtils.isNotBlank(phone) && && FoxValidateUtil.isPhone(phone)) {
         	#if($originSecurityColumn.contains("mobile"))
             String phone0 = FoxSecurityHelper.encode(phone);
             if (!phone0.equals(secent.getPhone0())) {
@@ -200,7 +201,7 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
         }
         #elseif(${securityColumn} == "contact_mobile")
         String contactMobile = ent.getContact_mobile();
-        if (StringUtils.isNotBlank(contactMobile) && contactMobile.matches("[1][3578]\\d{9}")) {
+        if (StringUtils.isNotBlank(contactMobile) && && FoxValidateUtil.isPhone(contactMobile)) {
             String mob0 = FoxSecurityHelper.encode(contactMobile);
             if (!mob0.equals(secent.getCmob0())) {
                 // 更新
@@ -262,9 +263,7 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
         }
         #elseif(${securityColumn} == "lname")
         //lname
-        if (StringUtils.isNotBlank(secent.getName1())) {
-            cloneEntity.setLname(FoxSecurityHelper.decode(secent.getName1()));
-        }
+        cloneEntity.setLname(secent.getName1());
         #elseif(${securityColumn} == "name2")
         //name2
         if (StringUtils.isNotBlank(secent.getName3())) {
@@ -314,13 +313,23 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
         // name
         if (StringUtils.isNotBlank(entity.getName())){
             entity.setName(FoxDesensitizedUtil.chineseName(entity.getName()));
+            
         }
         #elseif(${securityColumn} == "fname")
         //fname
-        entity.setFname("");
+        if (StringUtils.isNotBlank(entity.getName())){
+        	entity.setFname(entity.getName().replaceAll("\\*",""));
+        } else {
+        	entity.setFname("");
+        }
         #elseif(${securityColumn} == "lname")
         //lname
-        entity.setLname("");
+        if (StringUtils.isNotBlank(entity.getName())){
+        	int charIndex = entity.getName().indexOf('*');
+        	entity.setLname(charIndex >= 0 ? entity.getName().substring(charIndex) : "");
+        } else {
+        	entity.setLname("");
+        }
         #elseif(${securityColumn} == "name2")
         //name2
         entity.setName2("");
@@ -331,12 +340,12 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
         }
         #elseif(${securityColumn} == "mobile")
         //mobile
-         if (StringUtils.isNotBlank(entity.getMobile())){
+         if (StringUtils.isNotBlank(entity.getMobile()) && && FoxValidateUtil.isPhone(entity.getMobile())){
             entity.setMobile(FoxDesensitizedUtil.mobilePhone(entity.getMobile()));
         }
         #elseif(${securityColumn} == "phone")
         //phone
-        if (StringUtils.isNotBlank(entity.getPhone())){
+        if (StringUtils.isNotBlank(entity.getPhone()) && && FoxValidateUtil.isPhone(entity.getPhone())){
             entity.setPhone(FoxDesensitizedUtil.mobilePhone(entity.getPhone()));
         }
         #elseif(${securityColumn} == "contactor")
@@ -345,8 +354,8 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
             entity.setContactor(FoxDesensitizedUtil.chineseName(entity.getContactor()));
         }
         #elseif(${securityColumn} == "contact_mobile")
-         if (StringUtils.isNotBlank(entity.getContact_mobile())){
-            entity.setContact_mobile(FoxDesensitizedUtil.chineseName(entity.getContact_mobile()));
+         if (StringUtils.isNotBlank(entity.getContact_mobile()) && FoxValidateUtil.isPhone(entity.getContact_mobile())){
+            entity.setContact_mobile(FoxDesensitizedUtil.mobilePhone(entity.getContact_mobile()));
         }
         #end	
         #end

@@ -14,7 +14,7 @@ class ExportEJBWizard extends Wizard {
 	public ExportEJBWizard(final IFile file) {
 		this.file = null;
 		this.file = file;
-		this.setWindowTitle("EJB v20221021");
+		this.setWindowTitle("EJB v20221025");
 		final IDialogSettings settings = ERDiagramActivator.getDefault().getDialogSettings();
 		IDialogSettings section = settings.getSection("EJBWizard");
         if (section == null) {
@@ -83,7 +83,7 @@ class ExportEJBWizard extends Wizard {
 			util.base = section.getBoolean("base");
 			util.foxsecProcesser= section.getBoolean("foxsec_processer");
 			final IContainer foxsecPath = (IContainer) this.page.getFoxsecOutputFolderResource();
-			util.foxsecProcesserPath = foxsecPath.getLocation().toString();
+			util.foxsecProcesserPath = foxsecPath == null ? null : (foxsecPath.getLocation() == null ? null : foxsecPath.getLocation().toString());
 			if (!util.idsuffix.startsWith("@")) {
 				util.exportEjb();
 			} else {
@@ -108,7 +108,7 @@ class ExportEJBWizard extends Wizard {
 				util2.binding = section.getBoolean("binding");
 				util2.base = section.getBoolean("base");
 				util2.foxsecProcesser= section.getBoolean("foxsec_processer");
-				util2.foxsecProcesserPath = foxsecPath.getLocation().toString();
+				util2.foxsecProcesserPath = foxsecPath == null ? null : (foxsecPath.getLocation() == null ? null : foxsecPath.getLocation().toString());
 				
 				util2.exportAll();
 			}

@@ -201,7 +201,7 @@ public class ExportEJBWizardPage extends WizardPage {
 	public IResource getFoxsecOutputFolderResource() {
 		final String outputDir = this.txtSecurityProcesser.getText();
 		final IWorkspaceRoot wsroot = ResourcesPlugin.getWorkspace().getRoot();
-		return wsroot.findMember(outputDir);
+		return wsroot == null ? null : wsroot.findMember(outputDir);
 	}
 
 	private String getFolderName(final Object result) throws CoreException {

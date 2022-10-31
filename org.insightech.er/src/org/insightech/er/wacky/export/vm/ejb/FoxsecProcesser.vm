@@ -5,12 +5,11 @@ import com.foxhis.entity.${originTable};
 import com.foxhis.entity.${tableEntity}_PK;
 #end
 import com.foxhis.entity.${tableEntity};
-import com.foxhis.entity.ejbutil.EjbFacadeUtil;
-import com.foxhis.entity.ejbutil.ObjFacadeBase;
+import com.foxhis.entity.ejbutil.*;
 import com.foxhis.pms.biz.FoxPublicBiz;
+import com.foxhis.utils.FoxValidateUtil;
 import com.foxhis.utils.FoxDesensitizedUtil;
 import com.foxhis.utils.SessionUtils;
-import com.foxhis.utils.FoxValidateUtil;
 import org.apache.commons.lang.StringUtils;
 
 import javax.ejb.Local;
@@ -19,10 +18,10 @@ import java.util.Date;
 
 @Stateless(name="$tableEntity.toLowerCase()")
 @Local(FoxSecurityEntityProcesser.class)
-public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntityProcesser<${originTable}> {
+public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntityProcesser<${originTable}, ${tableEntity}> {
 
     @Override
-    public int beforeSave(${originTable} ent) {
+    public FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> beforeSave(${originTable} ent) {
         // 判断是否有值需要处理
         ObjFacadeBase objFacadeBase = EjbFacadeUtil.getFacadeLocal(ObjFacadeBase.class);
 #if($tablePkColumns.size() == 1)
@@ -224,11 +223,56 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
 #end	
 #end
 #end
-        if (process > 0) {
-            objFacadeBase.save(secent);
-        }
-        return process > 0 ? 1 : 0;
+        FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> response = new FoxSecurityEntityProcesserResponse<>();
+        response.setEntity(ent);
+        response.setSecEntity(secent);
+        response.setExist(isnew);
+        response.setModified(process > 0);
+        return response;
     }
+    
+	@Override
+    public int saving(FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> processerResponse, DatabaseOperationMode operationMode) {
+        if (processerResponse.getSecEntity() == null || !processerResponse.isModified()) {
+            return 0;
+        }
+        ${tableEntity} foxsecEntity = processerResponse.getSecEntity();
+        switch (operationMode) {
+            case SQL:{
+                SQLFacadeBase sqlFacadeBase =  EjbFacadeUtil.getFacadeLocal(SQLFacadeBase.class);
+                String sql = processerResponse.isExist() ? EntitySqlUtil.getUpdateSql(foxsecEntity, null) : EntitySqlUtil.getInsertSql(foxsecEntity);
+                return sqlFacadeBase.executeUpdate(sql, null);
+            }
+            case JPQL:{
+                JPQLFacadeBase jpqlFacadeBase =  EjbFacadeUtil.getFacadeLocal(JPQLFacadeBase.class);
+                String sql = processerResponse.isExist() ? EntitySqlUtil.getUpdateSql(foxsecEntity, null) : EntitySqlUtil.getInsertSql(foxsecEntity);
+                return jpqlFacadeBase.executeUpdate(sql, null);
+            }
+
+            case OBJ:{
+                ObjFacadeBase objFacadeBase =  EjbFacadeUtil.getFacadeLocal(ObjFacadeBase.class);
+                if(processerResponse.isExist()){
+                    objFacadeBase.update(foxsecEntity);
+                } else {
+                    objFacadeBase.save(foxsecEntity);
+                }
+                return 1;
+            }
+
+            default:{
+                return 0;
+            }
+        }
+    }
+
+    @Override
+    public FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> afterSaved(FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> response) {
+        ${originTable} entity = response.getEntity();
+        entity = desensitize(entity);
+        response.setEntity(entity);
+        return response;
+    }
+    
 
     @Override
     public Object afterRetrieve(${originTable} ent) {

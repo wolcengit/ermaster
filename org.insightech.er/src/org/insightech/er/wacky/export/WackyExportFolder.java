@@ -22,7 +22,9 @@ public class WackyExportFolder {
 	public boolean camel;
 	public boolean binding;
 	public boolean entity;
-
+	public boolean foxsecProcesser;
+	public String foxsecProcesserPath;
+	
 	public WackyExportFolder(final IFolder diagramFolder) {
 		this.diagramFolder = null;
 		this.templatePath = null;
@@ -78,6 +80,8 @@ public class WackyExportFolder {
 			util.camel = this.camel;
 			util.binding = this.binding;
 			util.base = this.base;
+			util.foxsecProcesser  = this.foxsecProcesser;
+			util.foxsecProcesserPath = this.foxsecProcesserPath;
 			util.exportEjbInternal(monitor);
 		} catch (Exception e) {
 			e.printStackTrace();

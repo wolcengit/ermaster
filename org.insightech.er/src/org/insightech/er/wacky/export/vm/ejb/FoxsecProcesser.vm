@@ -226,7 +226,7 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
         FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> response = new FoxSecurityEntityProcesserResponse<>();
         response.setEntity(ent);
         response.setSecEntity(secent);
-        response.setExist(isnew);
+        response.setExist(!isnew);
         response.setModified(process > 0);
         return response;
     }

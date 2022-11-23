@@ -15,6 +15,7 @@ import org.apache.commons.lang.StringUtils;
 import javax.ejb.Local;
 import javax.ejb.Stateless;
 import java.util.Date;
+import java.util.Objects;
 
 @Stateless(name="$tableEntity.toLowerCase()")
 @Local(FoxSecurityEntityProcesser.class)
@@ -220,9 +221,114 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
                 process++;
             }
         }
+#elseif(${securityColumn} == "empnoname")
+        // empnoname
+        if (StringUtils.isNotBlank(ent.getEmpnoname())) {
+            String empnoName = ent.getEmpnoname();
+            String name0 = FoxSecurityHelper.encode(empnoName);
+            if (!name0.equals(secent.getCname0())) {
+                FoxPublicBiz biz = EjbFacadeUtil.getFacadeLocal(FoxPublicBiz.class);
+                String[] newname = biz.splitGuestName(empnoName, true, "Name");
+                String lname = newname[3];
+                String fname = newname[4];
+                // 更新
+                secent.setName0(name0);
+                secent.setName1(fname);
+                secent.setName2(StringUtils.isNotBlank(lname) ? FoxSecurityHelper.encode(lname) : "");
+                process++;
+            }
+        } else {
+            if (!isnew) {
+                // 清理
+                secent.setName0("");
+                secent.setName1("");
+                secent.setName2("");
+                process++;
+            }
+        }
+#elseif(${securityColumn} == "guestname" || ${securityColumn} == "saleid_name" || ${securityColumn} == "cusno_des"|| ${securityColumn} == "agent_des" || ${securityColumn} == "source_des" || ${securityColumn} == "groupno_des")
+        // $securityColumn
+#set($firstUpperSecurityColumn=$securityColumn.substring(0,1).toUpperCase()+$securityColumn.substring(1))
+        if (StringUtils.isNotBlank(ent.get${firstUpperSecurityColumn}())) {
+            String $securityColumn = ent.get${firstUpperSecurityColumn}();
+            String ${securityColumn}0 = FoxSecurityHelper.encode($securityColumn);
+            if (!Objects.equals(${securityColumn}0, secent.get${firstUpperSecurityColumn}0())) {
+                FoxPublicBiz biz = EjbFacadeUtil.getFacadeLocal(FoxPublicBiz.class);
+                String[] newname = biz.splitGuestName(${securityColumn}, true, "Name");
+                String lname = newname[3];
+                String fname = newname[4];
+                // 更新
+                secent.set${firstUpperSecurityColumn}0(${securityColumn}0);
+                secent.set${firstUpperSecurityColumn}1(fname);
+                secent.set${firstUpperSecurityColumn}2(StringUtils.isNotBlank(lname) ? FoxSecurityHelper.encode(lname) : "");
+                process++;
+            }
+        } else {
+            if (!isnew) {
+                // 清理
+                secent.set${firstUpperSecurityColumn}0("");
+                secent.set${firstUpperSecurityColumn}1("");
+                secent.set${firstUpperSecurityColumn}2("");
+                process++;
+            }
+        }
+#elseif(${securityColumn} == "tele_phone")
+		// $securityColumn
+#set($firstUpperSecurityColumn=$securityColumn.substring(0,1).toUpperCase()+$securityColumn.substring(1))
+        String $securityColumn = ent.get${firstUpperSecurityColumn}();
+        if (StringUtils.isNotBlank($securityColumn) && FoxValidateUtil.isPhone($securityColumn)) {
+            String ${securityColumn}0 = FoxSecurityHelper.encode($securityColumn);
+            if (!Objects.equals(${securityColumn}0, secent.get${firstUpperSecurityColumn}0())) {
+                // 更新
+                secent.set${firstUpperSecurityColumn}0(${securityColumn}0);
+                secent.set${firstUpperSecurityColumn}1(${securityColumn}.substring(0, 3));
+                secent.set${firstUpperSecurityColumn}2(FoxSecurityHelper.encode(${securityColumn}.substring(3, 7)));
+                secent.set${firstUpperSecurityColumn}3(${securityColumn}.substring(7));
+                process++;
+            }
+        } else {
+            if (!isnew) {
+                // 清理
+                secent.set${firstUpperSecurityColumn}0("");
+                secent.set${firstUpperSecurityColumn}1("");
+                secent.set${firstUpperSecurityColumn}2("");
+                secent.set${firstUpperSecurityColumn}3("");
+                process++;
+            }
+        }
+#elseif(${securityColumn} == "tel")
+        // $securityColumn
+#set($firstUpperSecurityColumn=$securityColumn.substring(0,1).toUpperCase()+$securityColumn.substring(1))
+        String $securityColumn = ent.get${firstUpperSecurityColumn}();
+        if (StringUtils.isNotBlank($securityColumn) && FoxValidateUtil.isTelephone($securityColumn)) {
+            String ${securityColumn}0 = FoxSecurityHelper.encode($securityColumn);
+            if (!Objects.equals(${securityColumn}0, secent.get${firstUpperSecurityColumn}0())) {
+                // 更新
+                secent.set${firstUpperSecurityColumn}0(${securityColumn}0);
+                int index = ${securityColumn}.indexOf("-");
+                secent.set${firstUpperSecurityColumn}1(index != -1 ? ${securityColumn}.substring(0, index) : "");
+                
+                secent.set${firstUpperSecurityColumn}2(index != -1 ? FoxSecurityHelper.encode(${securityColumn}.substring(index, ${securityColumn}.length())) : "");
+                secent.set${firstUpperSecurityColumn}3("");
+                process++;
+            }
+        } else {
+            if (!isnew) {
+                // 清理
+                secent.set${firstUpperSecurityColumn}0("");
+                secent.set${firstUpperSecurityColumn}1("");
+                secent.set${firstUpperSecurityColumn}2("");
+                secent.set${firstUpperSecurityColumn}3("");
+                process++;
+            }
+        }   
 #end	
 #end
 #end
+#if(${tableEntity} == "Foxsec_vipcard")
+		String pwd = FoxSecurityHelper.flipPassword(ent.getPwd(), false);
+		ent.setPwd(pwd);
+#end				
         FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> response = new FoxSecurityEntityProcesserResponse<>();
         response.setEntity(ent);
         response.setSecEntity(secent);
@@ -292,13 +398,21 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
             return ent;
         }
         ${originTable} cloneEntity = (${originTable})ent.clone();
-        
+#if(${tableEntity} == "Foxsec_vipcard")
+		String pwd = FoxSecurityHelper.flipPassword(cloneEntity.getPwd(), false);
+		cloneEntity.setPwd(pwd);
+#end		
 #if ($originSecurityColumn)
 #foreach (${securityColumn} in ${originSecurityColumn}) 
 #if(${securityColumn} == "name")
         // name
         if (StringUtils.isNotBlank(secent.getName0())) {
             cloneEntity.setName(FoxSecurityHelper.decode(secent.getName0()));
+        }
+#elseif(${securityColumn} == "empnoname")
+        // empnoname
+        if (StringUtils.isNotBlank(secent.getName0())) {
+            cloneEntity.setEmpnoname(FoxSecurityHelper.decode(secent.getName0()));
         }
 #elseif(${securityColumn} == "fname")
         //fname
@@ -343,6 +457,13 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
         if (StringUtils.isNotBlank(secent.getCmob0())) {
             cloneEntity.setContact_mobile(FoxSecurityHelper.decode(secent.getCmob0()));
         }
+#elseif(${securityColumn} == "guestname" || ${securityColumn} == "saleid_name" || ${securityColumn} == "cusno_des"|| ${securityColumn} == "agent_des" || ${securityColumn} == "source_des" || ${securityColumn} == "groupno_des" || ${securityColumn} == "tele_phone"|| ${securityColumn} == "tel")
+        // ${securityColumn}
+        #set($firstUpperSecurityColumn=$securityColumn.substring(0,1).toUpperCase()+$securityColumn.substring(1))
+        if (StringUtils.isNotBlank(secent.get${firstUpperSecurityColumn}0())) {
+            cloneEntity.set${firstUpperSecurityColumn}(FoxSecurityHelper.decode(secent.get${firstUpperSecurityColumn}0()));
+        }
+        
 #end	
 #end
 #end
@@ -351,59 +472,62 @@ public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntity
 
     @Override
     public ${originTable} desensitize(${originTable} entity) {
+    	${originTable} cloneEntity = (${originTable})entity.clone();
 #if ($originSecurityColumn)
 #foreach (${securityColumn} in ${originSecurityColumn}) 
 #if(${securityColumn} == "name")
         // name
-        if (StringUtils.isNotBlank(entity.getName())){
-            entity.setName(FoxDesensitizedUtil.chineseName(entity.getName()));
+        if (StringUtils.isNotBlank(cloneEntity.getName())){
+            cloneEntity.setName(FoxDesensitizedUtil.chineseName(cloneEntity.getName()));
             
         }
 #elseif(${securityColumn} == "fname")
         //fname
-        if (StringUtils.isNotBlank(entity.getName())){
-        	entity.setFname(entity.getName().replaceAll("\\*",""));
+        if (StringUtils.isNotBlank(cloneEntity.getName())){
+        	cloneEntity.setFname(cloneEntity.getName().replaceAll("\\*",""));
         } else {
-        	entity.setFname("");
+        	cloneEntity.setFname("");
         }
 #elseif(${securityColumn} == "lname")
         //lname
-        if (StringUtils.isNotBlank(entity.getName())){
-        	int charIndex = entity.getName().indexOf('*');
-        	entity.setLname(charIndex >= 0 ? entity.getName().substring(charIndex) : "");
+        if (StringUtils.isNotBlank(cloneEntity.getName())){
+        	int charIndex = cloneEntity.getName().indexOf('*');
+        	cloneEntity.setLname(charIndex >= 0 ? cloneEntity.getName().substring(charIndex) : "");
+        	if (cloneEntity.getLname().length() > 2){
+        		cloneEntity.setLname(cloneEntity.getLname().substring(0, 2));
+        	}
         } else {
-        	entity.setLname("");
+        	cloneEntity.setLname("");
         }
 #elseif(${securityColumn} == "name2")
         //name2
-        entity.setName2("");
+        cloneEntity.setName2("");
 #elseif(${securityColumn} == "ident")
         //indent
-        if (StringUtils.isNotBlank(entity.getIdent())){
-            entity.setIdent(FoxDesensitizedUtil.idCardNumByXR(entity.getIdent()));
+        if (StringUtils.isNotBlank(cloneEntity.getIdent())){
+            cloneEntity.setIdent(FoxDesensitizedUtil.idCardNumByXR(cloneEntity.getIdent()));
         }
-#elseif(${securityColumn} == "mobile")
-        //mobile
-         if (StringUtils.isNotBlank(entity.getMobile()) &&  FoxValidateUtil.isPhone(entity.getMobile())){
-            entity.setMobile(FoxDesensitizedUtil.mobilePhone(entity.getMobile()));
+#elseif(${securityColumn} == "contactor" || ${securityColumn} == "guestname" || ${securityColumn} == "empnoname" || ${securityColumn} == "saleid_name" || ${securityColumn} == "cusno_des" || ${securityColumn} == "agent_des" || ${securityColumn} == "source_des" || ${securityColumn} == "groupno_des")
+		//$securityColumn
+#set($firstUpperSecurityColumn=$securityColumn.substring(0,1).toUpperCase()+$securityColumn.substring(1))
+        if (StringUtils.isNotBlank(cloneEntity.get${firstUpperSecurityColumn}())){
+            cloneEntity.set${firstUpperSecurityColumn}(FoxDesensitizedUtil.chineseName(cloneEntity.get${firstUpperSecurityColumn}()));
         }
-#elseif(${securityColumn} == "phone")
-        //phone
-        if (StringUtils.isNotBlank(entity.getPhone()) &&  FoxValidateUtil.isPhone(entity.getPhone())){
-            entity.setPhone(FoxDesensitizedUtil.mobilePhone(entity.getPhone()));
+#elseif(${securityColumn} == "mobile" || ${securityColumn} == "phone" || ${securityColumn} == "contact_mobile" || ${securityColumn} == "tele_phone")
+		//$securityColumn
+#set($firstUpperSecurityColumn=$securityColumn.substring(0,1).toUpperCase()+$securityColumn.substring(1))
+        if (StringUtils.isNotBlank(entity.get${firstUpperSecurityColumn}()) && FoxValidateUtil.isPhone(cloneEntity.get${firstUpperSecurityColumn}())){
+            cloneEntity.set${firstUpperSecurityColumn}(FoxDesensitizedUtil.mobilePhone(cloneEntity.get${firstUpperSecurityColumn}()));
         }
-#elseif(${securityColumn} == "contactor")
-        // contactor
-        if (StringUtils.isNotBlank(entity.getContactor())){
-            entity.setContactor(FoxDesensitizedUtil.chineseName(entity.getContactor()));
-        }
-#elseif(${securityColumn} == "contact_mobile")
-         if (StringUtils.isNotBlank(entity.getContact_mobile()) && FoxValidateUtil.isPhone(entity.getContact_mobile())){
-            entity.setContact_mobile(FoxDesensitizedUtil.mobilePhone(entity.getContact_mobile()));
+#elseif(${securityColumn} == "tel")
+		//$securityColumn
+#set($firstUpperSecurityColumn=$securityColumn.substring(0,1).toUpperCase()+$securityColumn.substring(1))
+        if (StringUtils.isNotBlank(entity.get${firstUpperSecurityColumn}()) && FoxValidateUtil.isTelephone(cloneEntity.get${firstUpperSecurityColumn}())){
+            cloneEntity.set${firstUpperSecurityColumn}(FoxDesensitizedUtil.fixedPhone(cloneEntity.get${firstUpperSecurityColumn}()));
         }
 #end	
 #end
 #end
-        return entity;
+        return cloneEntity;
     }
 }

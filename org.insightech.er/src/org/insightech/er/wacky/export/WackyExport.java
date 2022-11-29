@@ -335,12 +335,22 @@ public class WackyExport {
 					filename = String.valueOf(outputPath) + bindingPath + "/" + tableEntity3 + "BindingProxy.java";
 					this.createFile(filetemplate, filename);
 				}
-				if(this.foxsecProcesser && tableEntity3.toLowerCase().startsWith("foxsec_")) {
+				if(this.foxsecProcesser && (tableEntity3.toLowerCase().startsWith("foxsec_") || (wt3.getSecurityOriginColumns() != null && wt3.getSecurityOriginColumns().size() > 0) )) {
 					try {
-						this.context.put("originTable",StringUtils.capitalize(tableEntity3.toLowerCase().substring(7, tableEntity3.length())));
-						this.context.put("originSecurityColumn",wt3.getSecurityOriginColumns());
+						this.context.put("securityColumns",wt3.getSecurityColumns());
+						String className = null;
+						if(!tableEntity3.toLowerCase().startsWith("foxsec_")) {
+							className = "Foxsec_"+tableEntity3.toLowerCase();
+							this.context.put("tableName", className);
+							this.context.put("originTable",tableEntity3);
+						} else {
+							className = tableEntity3;
+							this.context.put("tableName", className);
+							this.context.put("originTable",StringUtils.capitalize(tableEntity3.toLowerCase().substring(7, tableEntity3.length())));
+						}
+						this.context.put("secTable", tableEntity3);
 						filetemplate = String.valueOf(vmPath) + "FoxsecProcesser.vm";
-						filename = String.valueOf(foxsecProcesserPath) + "/" + StringUtils.capitalize(tableEntity3.toLowerCase()) + "_SecurityEntityProcesser.java";
+						filename = String.valueOf(foxsecProcesserPath) + "/" + StringUtils.capitalize(className.toLowerCase()) + "_SecurityEntityProcesser.java";
 						this.createFile(filetemplate, filename);
 						log(IStatus.INFO, wt3.getSecurityOriginColumns().toString());
 					}catch (Exception e) {

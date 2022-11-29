@@ -312,4 +312,23 @@ public class WackyTable
     	}
     	return columns;
     }
+    
+    /**
+     * 获取当前表需要加密的字段源集
+     * @return
+     */
+    public List<WackyColumn> getSecurityColumns(){
+    	List<WackyColumn> columns = null;
+    	for (WackyColumn wackyColumn : allColumns) {
+    		String securityColumn = wackyColumn.getSecurityColumn();
+    		if (securityColumn == null) {
+    			continue;
+    		}
+    		if (columns == null) {
+    			columns = new ArrayList();
+    		}
+    		columns.add(wackyColumn);
+    	}
+    	return columns;
+    }
 }

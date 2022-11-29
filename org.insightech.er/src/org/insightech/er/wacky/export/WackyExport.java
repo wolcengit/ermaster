@@ -252,8 +252,10 @@ public class WackyExport {
 				this.context.put("originSecurityColumn",null);
 				this.context.put("table", (Object) wt3);
 				this.context.put("tableNotPkColumns", (Object) wt3.getNotPkColumns());
+				this.context.put("tableNotPkColumnsNoSec", (Object) wt3.getNotPkColumnsNoSec());
 				this.context.put("tablePkColumns", (Object) wt3.getPkColumns());
 				this.context.put("tableAllColumns", (Object) wt3.getAllColumns());
+				this.context.put("tableAllColumnsNoSec", (Object) wt3.getAllColumnsNoSec());
 				this.context.put("tableFindColumns", (Object) wt3.getFindColumns());
 				this.context.put("tableNotPkPackages", (Object) wt3.getNotPkPageages());
 				this.context.put("tablePkPackages", (Object) wt3.getPkPageages());

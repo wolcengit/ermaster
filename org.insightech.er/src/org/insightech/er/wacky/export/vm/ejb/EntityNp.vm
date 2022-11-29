@@ -53,8 +53,8 @@ public abstract class Abstract${tableEntity} implements java.io.Serializable,Clo
 	
 
 	/** 完全构造 */
-	public Abstract${tableEntity}($table.getAllParameters()) {
-#foreach (${column} in ${tableNotPkColumns}) 
+	public Abstract${tableEntity}($table.getAllParametersNoSec()) {
+#foreach (${column} in ${tableNotPkColumnsNoSec}) 
 		this.$column.getName() = $column.getName();
 #end
 #foreach (${column} in ${tablePkColumns}) 

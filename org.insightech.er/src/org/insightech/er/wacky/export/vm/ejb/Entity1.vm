@@ -54,8 +54,8 @@ public class ${tableEntity} implements java.io.Serializable,Cloneable {
 	}
 
 	/** 完全构造 */
-	public ${tableEntity}($table.getAllParameters()) {
-#foreach (${column} in ${tableAllColumns}) 
+	public ${tableEntity}($table.getAllParametersNoSec()) {
+#foreach (${column} in ${tableAllColumnsNoSec}) 
 		this.$column.getName() = $column.getName();
 #end
 	}

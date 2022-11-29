@@ -67,7 +67,7 @@ public class WackyTable
                 this.notPkColumns.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
                 this.util.getImportPackges(column.getType(), this.notPkPageages);
                 this.allColumns.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
-                if(!column.getName().startWith("sec_")&& !column.getName().startWith("qry_")){
+                if(!column.getName().startsWith("sec_")&& !column.getName().startsWith("qry_")){
                     this.allColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
                     this.notPkColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
                 }

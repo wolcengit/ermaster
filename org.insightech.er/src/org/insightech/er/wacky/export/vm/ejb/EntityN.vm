@@ -91,8 +91,8 @@ public class ${tableEntity} implements java.io.Serializable,Cloneable {
 	}
 
 	/** 完全构造 */
-	public ${tableEntity}($table.getAllParameters()) {
-#foreach (${column} in ${tableNotPkColumns}) 
+	public ${tableEntity}($table.getAllParametersNoSec()) {
+#foreach (${column} in ${tableNotPkColumnsNoSec}) 
 		this.$column.getName() = $column.getName();
 #end
 #if(${EmbeddedId})

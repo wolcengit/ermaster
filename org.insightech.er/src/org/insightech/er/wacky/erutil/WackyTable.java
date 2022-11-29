@@ -13,7 +13,9 @@ public class WackyTable
     private ERTable table;
     private List<WackyColumn> pkColumns;
     private List<WackyColumn> notPkColumns;
+    private List<WackyColumn> notPkColumnsNoSec;
     private List<WackyColumn> allColumns;
+    private List<WackyColumn> allColumnsNoSec;
     private List<WackyColumn> findColumns;
     private List<String> pkPageages;
     private List<String> notPkPageages;
@@ -26,7 +28,9 @@ public class WackyTable
         this.table = null;
         this.pkColumns = null;
         this.notPkColumns = null;
+        this.notPkColumnsNoSec = null;
         this.allColumns = null;
+        this.allColumnsNoSec = null;
         this.findColumns = null;
         this.pkPageages = null;
         this.notPkPageages = null;
@@ -38,7 +42,9 @@ public class WackyTable
         this.table = table;
         this.pkColumns = new ArrayList<WackyColumn>();
         this.notPkColumns = new ArrayList<WackyColumn>();
+        this.notPkColumnsNoSec = new ArrayList<WackyColumn>();
         this.allColumns = new ArrayList<WackyColumn>();
+        this.allColumnsNoSec = new ArrayList<WackyColumn>();
         this.findColumns = new ArrayList<WackyColumn>();
         this.pkPageages = new ArrayList<String>();
         this.notPkPageages = new ArrayList<String>();
@@ -50,6 +56,7 @@ public class WackyTable
                 this.pkColumns.add(new WackyColumn(column, true, this.diagram, this.util));
                 this.util.getImportPackges(column.getType(), this.pkPageages);
                 this.allColumns.add(new WackyColumn(column, true, this.diagram, this.util));
+                this.allColumnsNoSec.add(new WackyColumn(column, true, this.diagram, this.util));
                 this.util.getImportPackges(column.getType(), this.allPageages);
                 if (ct.equals("byte[]")) {
                     continue;
@@ -60,6 +67,10 @@ public class WackyTable
                 this.notPkColumns.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
                 this.util.getImportPackges(column.getType(), this.notPkPageages);
                 this.allColumns.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
+                if(!column.getName().startWith("sec_")&& !column.getName().startWith("qry_")){
+                    this.allColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
+                    this.notPkColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
+                }
                 this.util.getImportPackges(column.getType(), this.allPageages);
                 if (ct.equals("byte[]")) {
                     continue;
@@ -120,9 +131,16 @@ public class WackyTable
     public List<WackyColumn> getNotPkColumns() {
         return this.notPkColumns;
     }
+
+    public List<WackyColumn> getNotPkColumnsNoSec() {
+        return this.notPkColumnsNoSec;
+    }
     
     public List<WackyColumn> getAllColumns() {
         return this.allColumns;
+    }
+    public List<WackyColumn> getAllColumnsNoSec() {
+        return this.allColumnsNoSec;
     }
     
     public List<WackyColumn> getFindColumns() {
@@ -144,6 +162,9 @@ public class WackyTable
     public String getAllParameters() {
         return this.util.getParameters(this.allColumns, 0);
     }
+    public String getAllParametersNoSec() {
+        return this.util.getParameters(this.allColumnsNoSec, 0);
+    }
     
     public String getPkParameters() {
         return this.util.getParameters(this.pkColumns, 0);
@@ -152,9 +173,16 @@ public class WackyTable
     public String getNotPkParameters() {
         return this.util.getParameters(this.notPkColumns, 1);
     }
+
+    public String getNotPkParametersNoSec() {
+        return this.util.getParameters(this.notPkColumnsNoSec, 1);
+    }
     
     public String getAllCallParameters() {
         return this.util.getCallParameters(this.allColumns, 0);
+    }
+    public String getAllCallParametersNoSec() {
+        return this.util.getCallParameters(this.allColumnsNoSec, 0);
     }
     
     public String getPkCallParameters() {
@@ -163,6 +191,9 @@ public class WackyTable
     
     public String getNotPkCallParameters() {
         return this.util.getCallParameters(this.notPkColumns, 1);
+    }
+    public String getNotPkCallParametersNoSec() {
+        return this.util.getCallParameters(this.notPkColumnsNoSec, 1);
     }
     
     public String getAttributeOverrides() {

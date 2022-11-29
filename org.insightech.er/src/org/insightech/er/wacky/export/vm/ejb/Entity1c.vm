@@ -43,8 +43,8 @@ public class ${tableEntity} extends ${tableAbstractEntity} implements java.io.Se
 	}
 
 	/** 完全构造 */
-	public ${tableEntity}($table.getAllParameters()) {
-		super($table.getAllCallParameters());
+	public ${tableEntity}($table.getAllParametersNoSec()) {
+		super($table.getAllCallParametersNoSec());
 	}
 
 	

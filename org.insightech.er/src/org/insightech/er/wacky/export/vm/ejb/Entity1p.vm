@@ -46,8 +46,8 @@ public abstract class Abstract${tableEntity} implements java.io.Serializable,Clo
 	}
 
 	/** 完全构造 */
-	public Abstract${tableEntity}($table.getAllParameters()) {
-#foreach (${column} in ${tableAllColumns}) 
+	public Abstract${tableEntity}($table.getAllParametersNoSec()) {
+#foreach (${column} in ${tableAllColumnsNoSec}) 
 		this.$column.getName() = $column.getName();
 #end
 	}

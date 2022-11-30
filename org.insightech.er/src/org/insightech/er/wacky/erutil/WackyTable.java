@@ -2,10 +2,14 @@ package org.insightech.er.wacky.erutil;
 
 import org.insightech.er.wacky.export.*;
 import org.insightech.er.editor.model.diagram_contents.element.node.table.*;
+import org.insightech.er.ERDiagramActivator;
 import org.insightech.er.editor.model.*;
 import org.insightech.er.editor.model.diagram_contents.element.node.table.column.*;
 import java.util.*;
 import org.apache.commons.lang.*;
+import org.eclipse.core.runtime.ILog;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 
 public class WackyTable
 {
@@ -67,15 +71,15 @@ public class WackyTable
                 this.notPkColumns.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
                 this.util.getImportPackges(column.getType(), this.notPkPageages);
                 this.allColumns.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
-                if(!column.getName().startsWith("sec_")&& !column.getName().startsWith("qry_")){
-                    this.allColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
-                    this.notPkColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
-                }
                 this.util.getImportPackges(column.getType(), this.allPageages);
-                if (ct.equals("byte[]")) {
-                    continue;
+                if (!ct.equals("byte[]")) {
+                    this.findColumns.add(new WackyColumn(column, true, this.diagram, this.util));
                 }
-                this.findColumns.add(new WackyColumn(column, true, this.diagram, this.util));
+                if(column.getPhysicalName().startsWith("sec_") || column.getPhysicalName().startsWith("qry_")){
+                	continue;
+                }
+                this.allColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
+                this.notPkColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
             }
         }
         if (table.getPrimaryKeySize() == 1) {
@@ -331,4 +335,9 @@ public class WackyTable
     	}
     	return columns;
     }
+    
+    public void log(final int level, final String text) {
+		final ILog log = ERDiagramActivator.getDefault().getLog();
+		log.log((IStatus) new Status(level, "org.insightech.er.wacky", text));
+	}
 }

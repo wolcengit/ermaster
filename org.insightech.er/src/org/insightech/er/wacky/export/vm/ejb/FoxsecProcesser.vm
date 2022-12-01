@@ -20,7 +20,7 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
         int process = 0;
         ObjFacadeBase objFacadeBase = EjbFacadeUtil.getFacadeLocal(ObjFacadeBase.class);
 #if($tablePkColumns.size() == 1)
-        ${secTable} secent = ($secTable) objFacadeBase.findById(${tableEntity}.class, ent.get$column.getCapitalName()());
+        ${secTable} secent = ($secTable) objFacadeBase.findById(${tableEntity}.class, ent.get$tablePk.getCapitalName()());
 #elseif($tablePkColumns.size() > 1)
         ${secTable}_PK secpk = new ${secTable}_PK();
 #foreach (${column} in ${tablePkColumns})
@@ -32,7 +32,7 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
         if (secent == null) {
             isNew = true;
 #if(${originTable} == ${secTable})
-            secent = (${originTable})ent.clone();
+            secent = ent;
 #else
             secent = new ${secTable}();
 #foreach (${column} in ${tablePkColumns})
@@ -80,15 +80,19 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
 
     @Override
     public Object afterRetrieve(${originTable} ent) {
+#if(${originTable} == ${secTable})
+		${secTable} secent = ent;
+#else
         ObjFacadeBase objFacadeBase = EjbFacadeUtil.getFacadeLocal(ObjFacadeBase.class);
 #if($tablePkColumns.size() == 1)
-        ${secTable} secent = ($secTable) objFacadeBase.findById(${tableEntity}.class, ent.get$column.getCapitalName()());
+        ${secTable} secent = ($secTable) objFacadeBase.findById(${tableEntity}.class, ent.get$tablePk.getCapitalName()());
 #elseif($tablePkColumns.size() > 1)
         ${secTable}_PK secpk = new ${secTable}_PK();
 #foreach (${column} in ${tablePkColumns})
         secpk.set$column.getCapitalName()(ent.get$column.getCapitalName()());
 #end
         ${secTable} secent = (${secTable}) objFacadeBase.findById(${secTable}.class, secpk);
+#end
 #end
         if (secent == null) {
             return ent;
@@ -100,7 +104,13 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
 #if(!${securityColumn.isQry()})
         // sec_${co}
         if (StringUtils.isNotBlank(secent.getSec_${co}())) {
-            ent.set${cu}(FoxSecurityHelper.decode(secent.getSec_${co}()));
+            cloneEntity.set${cu}(FoxSecurityHelper.decode(secent.getSec_${co}()));
+#if(${originTable} == ${secTable})
+			cloneEntity.setSec_${co}("");
+#if(${securityColumn.isQry()})	
+			cloneEntity.setQry_${co}("");
+#end
+#end
         }
 #end
 #end
@@ -109,7 +119,12 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
 
     @Override
     public ${originTable} desensitize(${originTable} entity) {
-        ${originTable} cloneEntity = (${originTable})entity.clone();
+#if(${originTable} == ${secTable})
+            ${originTable} cloneEntity = entity;
+#else
+            ${originTable} cloneEntity = (${originTable})entity.clone();
+#end
+        
 #foreach (${securityColumn} in ${securityColumns})
 #set($co = ${securityColumn.getOriginColumn()})
 #set($cu = ${securityColumn.getOriginColumnCapitalName()})
@@ -119,31 +134,36 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
 #set($cc3 = ",tel,")
 #set($cc4 = ",email,")
 #set($cc5 = ",address,street,")
+#set($cc6 = ",bankcode,")
 #if(!$securityColumn.isQry())
         // sec_${co}
 #if("ident" == ${co})        
         if (StringUtils.isNotBlank(cloneEntity.getIdent())) {
             cloneEntity.setIdent(FoxDesensitizedUtil.idCardNumByXR(cloneEntity.getIdent()));
         }
-#elseif($cc1.contains(${cc})) {
+#elseif($cc1.contains(${cc})) 
         if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
             cloneEntity.set${cu}(FoxDesensitizedUtil.chineseName(cloneEntity.get${cu}()));
         }
-#elseif($cc2.contains(${cc})) {
+#elseif($cc2.contains(${cc})) 
         if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
             cloneEntity.set${cu}(FoxDesensitizedUtil.mobilePhone(cloneEntity.get${cu}()));
         }
-#elseif($cc3.contains(${cc})) {
+#elseif($cc3.contains(${cc})) 
         if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
             cloneEntity.set${cu}(FoxDesensitizedUtil.fixedPhone(cloneEntity.get${cu}()));
         }
-#elseif($cc4.contains(${cc})) {
+#elseif($cc4.contains(${cc})) 
         if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
             cloneEntity.set${cu}(FoxDesensitizedUtil.email(cloneEntity.get${cu}()));
         }
-#elseif($cc5.contains(${cc})) {
+#elseif($cc5.contains(${cc})) 
         if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
             cloneEntity.set${cu}(FoxDesensitizedUtil.address(cloneEntity.get${cu}()));
+        }
+#elseif($cc6.contains(${cc})) 
+        if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+            cloneEntity.set${cu}(FoxDesensitizedUtil.bankCard(cloneEntity.get${cu}()));
         }
 #end
 #end

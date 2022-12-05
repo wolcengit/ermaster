@@ -14,7 +14,7 @@ class ExportEJBWizard extends Wizard {
 	public ExportEJBWizard(final IFile file) {
 		this.file = null;
 		this.file = file;
-		this.setWindowTitle("EJB v20221201");
+		this.setWindowTitle("EJB v20221205");
 		final IDialogSettings settings = ERDiagramActivator.getDefault().getDialogSettings();
 		IDialogSettings section = settings.getSection("EJBWizard");
         if (section == null) {

@@ -131,7 +131,7 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
 #set($cc = ","+${securityColumn.getOriginColumn()}+",")
 #set($cc1 = ",name,name2,name4,fname,contactor,guestname,empnoname,saleid_name,cusname,cusno_des,agent_des,source_des,group_des,groupno_des,receipname,cby_name,")
 #set($cc1_1 = ",applname,usename,accntname,invoicename,accntname1,workername,empnoname,reportname,pmsname,attname,cbyname,unitname,htlname,owner_name,guide_name,dsb_name,")
-#set($cc1_2 = ",contractname,holdname,signname,invoicename,hname,haccntname,signname2,guest_name,")
+#set($cc1_2 = ",contractname,holdname,signname,invoicename,hname,haccntname,signname2,guest_name,haccnt_des,")
 #set($cc2 = ",mobile,phone,contact_mobile,contactor_mobile,tele_phone,addressee,receipmobile,applymobile,usemobile,accept_mobile,warning_mobile,reviewer_mobile,dsb_mobile,")
 #set($cc2_1 = ",guest_phone,linkmobile,wlmobile,cplman_phone,")
 #set($cc3 = ",tel,telephone,")

@@ -153,10 +153,12 @@ public class WackyColumn
      */
     public String getOriginColumn() {
          String name = this.column.getPhysicalName();
-         if (!name.startsWith("sec_") && !name.startsWith("qry_")){
+         if (!name.startsWith("sec_") && !name.startsWith("qry_") && !name.startsWith("last_qry_")){
         	 return null;
          }
-         
+         if(name.startsWith("last_qry_")) {
+             return name.substring(9);
+         }
          return name.substring(4);
     }
     
@@ -182,7 +184,7 @@ public class WackyColumn
          } 
          description = this.column.getLogicalName();
     	 secOriginIndex= description.indexOf("的");
-    	 if ((name.startsWith("sec_")|| name.startsWith("qry_")) && secOriginIndex > 0) {
+    	 if ((name.startsWith("sec_") || name.startsWith("qry_") || name.startsWith("last_qry_")) && secOriginIndex > 0) {
     		 return name;
     	 }
     	 return null;
@@ -228,8 +230,31 @@ public class WackyColumn
          } 
          description = this.column.getLogicalName();
     	 secOriginIndex= description.indexOf("的");
-    	 if ((name.startsWith("sec_")|| name.startsWith("qry_")) && secOriginIndex > 0) {
+    	 if (name.startsWith("qry_") && secOriginIndex > 0) {
     		 return name.startsWith("qry_");
+    	 }
+    	 return false;
+    }
+    
+    /**
+     * 是否是后几位查询字段
+     * @return
+     */
+    public boolean isLastQry() {
+    	 String description = this.column.getDescription();
+         if (description == null) {
+             description = "";
+         }
+         log(IStatus.INFO, getName()+" 的description:"+description);
+         String name = this.column.getPhysicalName();
+         int secOriginIndex= description.indexOf("sec_origin=");
+         if (secOriginIndex != -1) {
+        	 return name.startsWith("last_qry_");
+         } 
+         description = this.column.getLogicalName();
+    	 secOriginIndex= description.indexOf("的");
+    	 if (name.startsWith("last_qry_") && secOriginIndex > 0) {
+    		 return name.startsWith("last_qry_");
     	 }
     	 return false;
     }

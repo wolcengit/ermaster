@@ -1,7 +1,6 @@
 package org.insightech.er.wacky.export;
 
 import org.insightech.er.ERDiagramActivator;
-import org.insightech.er.wacky.*;
 import org.eclipse.jface.dialogs.*;
 import org.eclipse.jface.wizard.*;
 import org.eclipse.core.resources.*;
@@ -14,7 +13,7 @@ class ExportEJBWizard extends Wizard {
 	public ExportEJBWizard(final IFile file) {
 		this.file = null;
 		this.file = file;
-		this.setWindowTitle("EJB v20221226");
+		this.setWindowTitle("EJB v20230105");
 		final IDialogSettings settings = ERDiagramActivator.getDefault().getDialogSettings();
 		IDialogSettings section = settings.getSection("EJBWizard");
         if (section == null) {
@@ -60,10 +59,12 @@ class ExportEJBWizard extends Wizard {
 		this.setDialogSettings(section);
 	}
 
+	@Override
 	public void addPages() {
 		this.addPage((IWizardPage) (this.page = new ExportEJBWizardPage("EJB")));
 	}
 
+	@Override
 	public boolean performFinish() {
 		try {
 			this.page.doValidate();

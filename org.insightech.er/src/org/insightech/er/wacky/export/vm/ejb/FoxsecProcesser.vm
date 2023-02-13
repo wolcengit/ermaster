@@ -35,7 +35,27 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
     @Override
     public boolean processed(Serializable pk){
     	String sql = "select 1 from ${secTable.toLowerCase()} where ";
-
+	    QueryParameters parameters = new QueryParameters();
+#if($tablePkColumns.size() == 1)
+		sql+= " $tablePk=:$tablePk ";
+		parameters.addParameter("$tablePk", pk);
+#elseif($tablePkColumns.size() > 1)
+        ${originTable}_PK entityPk = (${originTable}_PK)pk;
+#set($index = 0)    
+#foreach (${column} in ${tablePkColumns})
+       	sql+= "#if($index > 0) and #end ${column.getName()}=:${column.getName()} ";
+		parameters.addParameter("${column.getName()}", entityPk.get${column.getCapitalName()}());
+#set($index = $index+1)    
+#end
+#end
+#foreach (${securityColumn} in ${securityColumns})
+#if(!${securityColumn.isQry()} && !${securityColumn.isLastQry()})
+		sql+= " and sec_${securityColumn.getOriginColumn()} is not null ";
+#end
+#end
+		SQLFacadeBase sqlFacadeBase = EjbFacadeUtil.getFacadeLocal(SQLFacadeBase.class);
+		Object ret = sqlFacadeBase.getSingleResult(sql, parameters);		
+		return Objects.equals(ret, 1);
     }
     
     @Override
@@ -429,27 +449,17 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
     	return secent;
     }
     
-     /**
-     * 克隆原始实体对象
-     *
-     */
     @Override
-    public ${originTable} cloneEntity(Object entity){
-    	if (entity == null){
-    		return null;
-    	}
-    	return (${originTable})(((${originTable})entity).clone());
-    }
-    
-     /**
-     * 克隆加密实体对象
-     *
-     */
-    @Override
-    public ${secTable} cloneSecEntity(Object secEntity){
-    	if (secEntity == null){
-    		return null;
-    	}
-    	return (${secTable})(((${secTable})secEntity).clone());
+    public Map<String, Object> pkToMap(Serializable pk){
+	    Map<String, Object> pkMap = new HashMap($tablePkColumns.size());
+#if($tablePkColumns.size() == 1)
+		pkMap.put("$tablePk", pk);
+#elseif($tablePkColumns.size() > 1)
+        ${originTable}_PK entityPk = (${originTable}_PK)pk;
+#foreach (${column} in ${tablePkColumns})
+		pkMap.put("${column.getName()}", entityPk.get${column.getCapitalName()}());
+#end
+#end
+		return pkMap;
     }
 }

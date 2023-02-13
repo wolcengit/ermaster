@@ -119,17 +119,17 @@ public class ${tableEntity}BindingProxy extends FoxBindingProxy<${tableEntity}> 
 #foreach (${column} in ${tableAllColumns}) 
 		if(column.equals($column.getUpperName())){
 #if($column.getJavaClass() == "Double")
-			this.set$column.getCapitalName()(value==null?((Double)null):Double.valueOf(((Number)value).doubleValue()));
+			this.set$column.getCapitalName()(value==null?((Double)null):Double.valueOf(value.toString()));
 #elseif($column.getJavaClass() == "Float")		
-			this.set$column.getCapitalName()(value==null?((Float)null):Float.valueOf(((Number)value).floatValue()));
+			this.set$column.getCapitalName()(value==null?((Float)null):Float.valueOf(value.toString()));
 #elseif($column.getJavaClass() == "Long")		
-			this.set$column.getCapitalName()(value==null?((Long)null):Long.valueOf(((Number)value).longValue()));
+			this.set$column.getCapitalName()(value==null?((Long)null):Long.valueOf(value.toString()));
 #elseif($column.getJavaClass() == "Integer")		
-			this.set$column.getCapitalName()(value==null?((Integer)null):Integer.valueOf(((Number)value).intValue()));
+			this.set$column.getCapitalName()(value==null?((Integer)null):Integer.valueOf(value.toString()));
 #elseif($column.getJavaClass() == "Short")		
-			this.set$column.getCapitalName()(value==null?((Short)null):Short.valueOf(((Number)value).shortValue()));
+			this.set$column.getCapitalName()(value==null?((Short)null):Short.valueOf(value.toString()));
 #elseif($column.getJavaClass() == "Byte")		
-			this.set$column.getCapitalName()(value==null?((Byte)null):Byte.valueOf(((Number)value).byteValue()));
+			this.set$column.getCapitalName()(value==null?((Byte)null):Byte.valueOf(value.toString()));
 #else			
 			this.set$column.getCapitalName()(($column.getJavaClass())value);
 #end

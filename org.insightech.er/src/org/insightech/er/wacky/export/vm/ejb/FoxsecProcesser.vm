@@ -21,20 +21,29 @@ import java.util.HashMap;
 public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEntityProcesser<${originTable}, ${secTable}> {
 #set($cc1 = ",name,name1,name2,name4,contactor,guestname,empnoname,saleid_name,cusname,cusno_des,agent_des,source_des,group_des,groupno_des,receipname,cby_name,")
 #set($cc1_1 = ",applname,usename,accntname,invoicename,accntname1,workername,empname,reportname,pmsname,attname,attname2,cbyname,unitname,htlname,owner_name,guide_name,dsb_name,")
-#set($cc1_2 = ",contractname,holdname,signname,invoicename,hname,haccntname,signname2,guest_name,haccnt_des,wokername,reportname,pmsname,ename,contractname,salename,resname,")
-#set($cc1_3 = ",collector,contacter,")
+#set($cc1_2 = ",contractname,holdname,signname,invoicename,hname,haccntname,signname2,guest_name,haccnt_des,worker,wokername,reportname,pmsname,ename,contractname,salename,resname,")
+#set($cc1_3 = ",collector,contacter,res_name,groupname,resbyname,competitor_name,realname,sourcename,agentname,cplperson,")
 #set($cc2 = ",mobile,phone,contact_mobile,contactor_mobile,tele_phone,addressee,receipmobile,applymobile,usemobile,accept_mobile,warning_mobile,reviewer_mobile,dsb_mobile,")
-#set($cc2_1 = ",guest_phone,linkmobile,wlmobile,cplman_phone,accept_mobile,cplperson,receiver,")
+#set($cc2_1 = ",guest_phone,linkmobile,wlmobile,cplman_phone,accept_mobile,receiver,")
 #set($cc3 = ",tel,telephone,")
 #set($cc4 = ",email,receipemail,contact_email,")
-#set($cc5 = ",address,address2,street,mailing_address,guest_address,")
+#set($cc5 = ",address,address2,street,mailing_address,guest_address,address1,")
 #set($cc6 = ",bankcode,")
 #set($cc7 = ",fname,")
+#set($cc8 = ",sex,sex_des,race,race_des,")
 
     @Override
-    public FoxSecurityEntityProcesserResponse<${originTable}, ${secTable}> beforeSave(${originTable} ent) {
+    public boolean processed(Serializable pk){
+    	String sql = "select 1 from ${secTable.toLowerCase()} where ";
+
+    }
+    
+    @Override
+    public FoxSecurityEntityProcesserResponse<${originTable}, ${secTable}> beforeSave(${originTable} ent, boolean forceSecEntity) {
         int process = 0;
         Serializable entityPk = null;
+        FoxSecurityEntityProcesserResponse<${originTable}, ${secTable}> response = new FoxSecurityEntityProcesserResponse<>();
+        response.setOriginEntity((${originTable})(ent.clone()));
 #if($tablePkColumns.size() == 1)
 		entityPk = ent.get$tablePk.getCapitalName()();
 #elseif($tablePkColumns.size() > 1)
@@ -44,21 +53,16 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
 #end
 		entityPk = secpk;
 #end
-        ${secTable} oldSecent = getOrCreateSecEntity(${secTable}.class, entityPk);
+        ${secTable} oldSecent = forceSecEntity ? null : getSecEntity(${secTable}.class, entityPk);
 
-		boolean isNew = isNewly();
+		boolean isNew = false;
 #if(${originTable} == ${secTable})
 		${secTable} secent = ent;
 #else
 		${secTable} secent = oldSecent == null ? null : (${secTable})(oldSecent.clone());
 		if (secent == null) {
 			isNew = true;
-            secent = new ${secTable}();
-#foreach (${column} in ${tablePkColumns})
-            secent.set$column.getCapitalName()(ent.get$column.getCapitalName()());
-#end
-            secent.setCby(SessionUtils.getEmpno());
-            secent.setChanged(new Date());     
+            secent = createSecEntity(entityPk);    
         }
 #end
         
@@ -66,19 +70,43 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
 #set($co = ${securityColumn.getOriginColumn()})
 #set($cu = ${securityColumn.getOriginColumnCapitalName()})
 #if(!${securityColumn.isQry()} && !${securityColumn.isLastQry()})
-        // sec_${co}
-        String nencSec${cu} = StringUtils.isBlank(ent.get${cu}()) ? "" : FoxSecurityHelper.encode(ent.get${cu}());
-        String oencSec${cu} = oldSecent == null ? null : oldSecent.getSec_${co}();
+		// sec_${co}
+#if((${originTable} == "Master" || ${originTable} == "Hmaster") && (${co} == "name" || ${co} == "fname" || ${co} == "lname"))
+        if (Objects.equals(ent.getCat(), "F")){
+        	String nencSec${cu} = StringUtils.isBlank(ent.get${cu}()) ? "" : FoxSecurityHelper.encode(ent.get${cu}());
+        	String oencSec${cu} = (oldSecent == null || StringUtils.isBlank(oldSecent.getSec_${co}()))  ? "" : oldSecent.getSec_${co}();
+        	secent.setSec_${co}(nencSec${cu});
+        	if(!Objects.equals(oencSec${cu},nencSec${cu})) {
+            	process++;
+			}
+        } else {
+        	secent.setSec_${co}("");
+        }
+#elseif((${originTable} == "Guest") && ((${co} == "name" || ${co} == "fname" || ${co} == "lname")))
+		if (Objects.equals(ent.getCls(), "F")){
+        	String nencSec${cu} = StringUtils.isBlank(ent.get${cu}()) ? "" : FoxSecurityHelper.encode(ent.get${cu}());
+        	String oencSec${cu} = (oldSecent == null || StringUtils.isBlank(oldSecent.getSec_${co}()))  ? "" : oldSecent.getSec_${co}();
+        	secent.setSec_${co}(nencSec${cu});
+        	if(!Objects.equals(oencSec${cu},nencSec${cu})) {
+            	process++;
+			}
+		} else {
+        	secent.setSec_${co}("");
+        }
+#else
+		String nencSec${cu} = StringUtils.isBlank(ent.get${cu}()) ? "" : FoxSecurityHelper.encode(ent.get${cu}());
+        String oencSec${cu} = (oldSecent == null || StringUtils.isBlank(oldSecent.getSec_${co}()))  ? "" : oldSecent.getSec_${co}();
         secent.setSec_${co}(nencSec${cu});
         if(!Objects.equals(oencSec${cu},nencSec${cu})) {
-            
             process++;
 		}
+#end			
 #end
 #end
 #foreach (${securityColumn} in ${securityColumns})
 #set($co = ${securityColumn.getOriginColumn()})
 #set($cu = ${securityColumn.getOriginColumnCapitalName()})
+#set($cc = ","+${securityColumn.getOriginColumn()}+",")
 #if(${securityColumn.isQry()})
 
         // qry_${co}
@@ -87,29 +115,21 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
 		if(qry${cu}.length() > $maxSizeLength){
 			qry${cu} = qry${cu}.substring(0, $maxSizeLength);	
 		}
-        String nencQry${cu} = FoxSecurityHelper.encodeForQueryColumn(qry${cu});
+#if("ident" == ${co})        
+        String nencQry${cu} = FoxSecurityHelper.encodeForQueryIdentColumn(qry${cu});
+#elseif($cc2.contains(${cc}) || $cc2_1.contains(${cc})) 
+		String nencQry${cu} = FoxSecurityHelper.encodeForQueryMobileColumn(qry${cu});
+#else
+		String nencQry${cu} = FoxSecurityHelper.encodeForNormalQueryColumn(qry${cu});
+#end
         String oencQry${cu} = oldSecent == null ? null : oldSecent.getQry_${co}();
         secent.setQry_${co}(nencQry${cu});
         if(!Objects.equals(oencQry${cu},nencQry${cu})) {
             process++;
 		}
 #end
-#if(${securityColumn.isLastQry()})
-
-        // lasy_qry_${co}
-		String lastQuery${cu} = ent.get${cu}() == null ? "" : ent.get${cu}();
-		if(lastQuery${cu}.length() > ${securityColumn.getLength()}){
-			lastQuery${cu} = lastQuery${cu}.substring(lastQuery${cu}.length() - ${securityColumn.getLength()});	
-		}
-        String oencLastQuery${cu} = oldSecent == null ? null : oldSecent.getLast_qry_${co}();
-        secent.setLast_qry_${co}(oencLastQuery${cu});
-        if(!Objects.equals(oencLastQuery${cu},lastQuery${cu})) {
-            process++;
-		}
-#end
 #end
 
-        FoxSecurityEntityProcesserResponse<${originTable}, ${secTable}> response = new FoxSecurityEntityProcesserResponse<>();
         response.setEntity(ent);
         response.setSecEntity(secent);
         response.setExist(!isNew);
@@ -290,9 +310,20 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
             cloneEntity.setIdent(FoxDesensitizedUtil.idCardNumByXR(cloneEntity.getIdent()));
         }
 #elseif($cc1.contains(${cc}) || $cc1_1.contains(${cc}) || $cc1_2.contains(${cc}) || $cc1_3.contains(${cc})) 
-        if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
-            cloneEntity.set${cu}(FoxDesensitizedUtil.chineseName(cloneEntity.get${cu}()));
-        }
+        
+#if((${originTable} == "Master" || ${originTable} == "Hmaster") && (${co} == "name" || ${co} == "fname" || ${co} == "lname"))
+        if (Objects.equals(cloneEntity.getCat(), "F") && StringUtils.isNotBlank(cloneEntity.get${cu}())){
+        	cloneEntity.set${cu}(FoxDesensitizedUtil.chineseName(cloneEntity.get${cu}()));
+        } 
+#elseif((${originTable} == "Guest") && ((${co} == "name" || ${co} == "fname" || ${co} == "lname")))
+		if (Objects.equals(cloneEntity.getCls(), "F") && StringUtils.isNotBlank(cloneEntity.get${cu}())){
+        	cloneEntity.set${cu}(FoxDesensitizedUtil.chineseName(cloneEntity.get${cu}()));
+		}
+#else
+		if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+			cloneEntity.set${cu}(FoxDesensitizedUtil.chineseName(cloneEntity.get${cu}()));
+		}
+#end	      
 #elseif($cc2.contains(${cc}) || $cc2_1.contains(${cc})) 
         if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
             cloneEntity.set${cu}(FoxDesensitizedUtil.mobilePhone(cloneEntity.get${cu}()));
@@ -317,6 +348,10 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
         if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
             cloneEntity.set${cu}(FoxDesensitizedUtil.desensitize(cloneEntity.get${cu}(), 0));
         }
+#elseif($cc8.contains(${cc})) 
+        if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+            cloneEntity.set${cu}("");
+        }
 #else
 		//TODO add logic
 #end
@@ -339,7 +374,7 @@ public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEnt
 		String[] secColumns = new String[$index];
 #set($index = 0)
 #foreach (${securityColumn} in ${securityColumns})
-#if(!${securityColumn.isQry()})
+#if(!$securityColumn.isQry() && !$securityColumn.isLastQry())
 #set($co = ${securityColumn.getOriginColumn()})
 		secColumns[$index] = "sec_$co";
 #set($index = $index+1)

@@ -75,7 +75,7 @@ public class WackyTable
                 if (!ct.equals("byte[]")) {
                     this.findColumns.add(new WackyColumn(column, true, this.diagram, this.util));
                 }
-                if(column.getPhysicalName().startsWith("sec_") || column.getPhysicalName().startsWith("qry_")){
+                if(column.getPhysicalName().startsWith("sec_") || column.getPhysicalName().startsWith("qry_") || column.getPhysicalName().startsWith("last_qry_")){
                 	continue;
                 }
                 this.allColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));

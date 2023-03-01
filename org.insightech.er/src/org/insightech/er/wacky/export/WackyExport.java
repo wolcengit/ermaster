@@ -28,6 +28,7 @@ import org.insightech.er.ERDiagramActivator;
 import org.insightech.er.editor.model.diagram_contents.element.node.table.ERTable;
 import org.insightech.er.editor.model.diagram_contents.element.node.table.TableSet;
 import org.insightech.er.editor.model.diagram_contents.element.node.table.column.NormalColumn;
+import org.insightech.er.wacky.erutil.WackyColumn;
 import org.insightech.er.wacky.erutil.WackyERDiagram;
 import org.insightech.er.wacky.erutil.WackyTable;
 
@@ -174,6 +175,56 @@ public class WackyExport {
 			final Map<String, ERTable> tbls = new HashMap<String, ERTable>();
 			final List<String> ptbls = new ArrayList<String>();
 			final Map<String, String> ctbls = new HashMap<String, String>();
+			final List<String> extraSecTables = new ArrayList();
+			extraSecTables.add("account");
+			extraSecTables.add("account_externalpay_record");
+			extraSecTables.add("advance_account");
+			extraSecTables.add("bank_pgs");
+			extraSecTables.add("crs_header");
+			extraSecTables.add("doorcard_req");
+			extraSecTables.add("gltemp");
+			extraSecTables.add("guest");
+			extraSecTables.add("haccount");
+			extraSecTables.add("haccount_a");
+			extraSecTables.add("haccount_c");
+			extraSecTables.add("haccount_externalpay_record");
+			extraSecTables.add("hadvance_account");
+			extraSecTables.add("hbank_pgs");
+			extraSecTables.add("hcrs_header");
+			extraSecTables.add("hmaster");
+			extraSecTables.add("hmaster_backup");
+			extraSecTables.add("hmessage_send");
+			extraSecTables.add("hpay_record");
+			extraSecTables.add("hsubaccnt");
+			extraSecTables.add("hticket_detail");
+			extraSecTables.add("hvipcard_ar_detail");
+			extraSecTables.add("hvipcard_invite_card");
+			extraSecTables.add("hvipcard_ticket");
+			extraSecTables.add("hvipcard_ticket_exchange");
+			extraSecTables.add("loc_master");
+			extraSecTables.add("master");
+			extraSecTables.add("master_backup");
+			extraSecTables.add("master_crs");
+			extraSecTables.add("master_del");
+			extraSecTables.add("master_hung");
+			extraSecTables.add("master_last");
+			extraSecTables.add("master_snapshot");
+			extraSecTables.add("master_till");
+			extraSecTables.add("message_send");
+			extraSecTables.add("outtemp");
+			extraSecTables.add("pay_record");
+			extraSecTables.add("rmpostbucket");
+			extraSecTables.add("rmpostbucket_td");
+			extraSecTables.add("subaccnt");
+			extraSecTables.add("ticket_detail");
+			extraSecTables.add("vipcard");
+			extraSecTables.add("vipcard_ar_detail");
+			extraSecTables.add("vipcard_invite_card");
+			extraSecTables.add("vipcard_ticket");
+			extraSecTables.add("vipcard_ticket_exchange");
+			extraSecTables.add("ycus_xf");
+			extraSecTables.add("ycus_xf_backup");
+			
 			if (!this.embeddedId) {
 				for (final ERTable table : this.tables) {
 					tbls.put(table.getPhysicalName(), table);
@@ -335,29 +386,50 @@ public class WackyExport {
 					filename = String.valueOf(outputPath) + bindingPath + "/" + tableEntity3 + "BindingProxy.java";
 					this.createFile(filetemplate, filename);
 				}
+				if (extraSecTables.contains(tableEntity3.toLowerCase())) {
+					this.context.put("secTable", "Foxsec_"+tableEntity3.toLowerCase());
+					this.context.put("originTable",tableEntity3);
+					filetemplate = String.valueOf(vmPath) + "VFoxsecEntity.vm";
+					filename = String.valueOf(outputPath) + "/VFoxsec" + tableEntity3  + ".java";
+					this.createFile(filetemplate, filename);
+					log(IStatus.INFO, tableEntity3);
+				}
 				if(this.foxsecProcesser && (tableEntity3.toLowerCase().startsWith("foxsec_") || (wt3.getSecurityOriginColumns() != null && wt3.getSecurityOriginColumns().size() > 0) )) {
 					try {
 						this.context.put("securityColumns",wt3.getSecurityColumns());
+						List<String> qryColumns = new ArrayList();
+						for (WackyColumn wackyColumn : wt3.getSecurityColumns()) {
+							if (wackyColumn.isQry()) {
+								qryColumns.add(wackyColumn.getOriginColumn());
+							}
+						}
+						this.context.put("qryColumns",qryColumns);
 						String className = null;
 						if(!tableEntity3.toLowerCase().startsWith("foxsec_")) {
 							className = "Foxsec_"+tableEntity3.toLowerCase();
 							this.context.put("tableName", className);
 							this.context.put("originTable",tableEntity3);
+							this.context.put("secTable", tableEntity3);
 						} else {
 							className = tableEntity3;
+							this.context.put("secTable", tableEntity3);
 							this.context.put("tableName", className);
-							this.context.put("originTable",StringUtils.capitalize(tableEntity3.toLowerCase().substring(7, tableEntity3.length())));
+							String originTable = StringUtils.capitalize(tableEntity3.toLowerCase().substring(7, tableEntity3.length()));
+							this.context.put("originTable",originTable);
 						}
-						this.context.put("secTable", tableEntity3);
+						
 						filetemplate = String.valueOf(vmPath) + "FoxsecProcesser.vm";
 						filename = String.valueOf(foxsecProcesserPath) + "/" + StringUtils.capitalize(className.toLowerCase()) + "_SecurityEntityProcesser.java";
 						this.createFile(filetemplate, filename);
 						log(IStatus.INFO, wt3.getSecurityOriginColumns().toString());
+						
+						
 					}catch (Exception e) {
 						e.printStackTrace();
 						log(IStatus.ERROR, e.getMessage());
 					}
 				}
+				
 			} 
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -27,9 +27,9 @@ public class Abstract${tableEntity}${IdSuffix} implements java.io.Serializable {
 	// $column.getDescript()
 #if(${EmbeddedId})
 	@Column($column.getColumnAnnotation())
-	#if(${ColumnDefult} && $column.hasDefault())
+#if(${ColumnDefult} && $column.hasDefault())
 	@ColumnDefault(value="$column.getDefault()") 
-	#end
+#end
 #end
 	@Id 
 	@Column($column.getColumnAnnotation())
@@ -66,9 +66,9 @@ public class Abstract${tableEntity}${IdSuffix} implements java.io.Serializable {
 			return true;
 		if ((other == null))
 			return false;
-		if (!(other instanceof ${tableEntity}${IdSuffix}))
+		if (!(other instanceof Abstract${tableEntity}${IdSuffix}))
 			return false;
-		${tableEntity}${IdSuffix} castOther = (${tableEntity}${IdSuffix}) other;
+		Abstract${tableEntity}${IdSuffix} castOther = (Abstract${tableEntity}${IdSuffix}) other;
 		
 		boolean result = true;
 #foreach (${column} in ${tablePkColumns}) 

@@ -1,0 +1,103 @@
+package com.foxhis.entity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+#foreach (${packge} in ${tableAllPackages}) 
+import ${packge};
+#end
+
+public class VFoxsec${originTable} extends ${originTable} implements VFoxsecEntity<${originTable}, ${secTable}>{
+
+	private static final long serialVersionUID = 1L;
+	
+	private static final Logger logger = LoggerFactory.getLogger(VFoxsec${originTable}.class);
+
+
+	private ${secTable} secEntity;
+	
+	
+	public ${secTable} getSecEntity(){
+		return secEntity;
+	}
+	
+	public void setSecEntity(${secTable} secEntity){
+		this.secEntity = secEntity;
+	}
+	
+	// 构造
+	/** 缺省构造 */
+	public VFoxsec${originTable}() {
+		super();
+	}
+	
+	/** 主键构造 */
+	public VFoxsec${originTable}(#if($tablePkColumns.size() == 1)String #else ${tableEntity}${IdSuffix} #end ${IdSuffixVar}) {
+		super(${IdSuffixVar});
+	}
+
+	/** 完全构造 */
+	public VFoxsec${originTable}($table.getAllParametersNoSec()) {
+		super($table.getAllCallParametersNoSec());
+	}
+
+	public void setEntity(${originTable} entity){
+#foreach (${column} in ${tableAllColumns}) 
+		set$column.getCapitalName()(entity.get$column.getCapitalName()());
+#end
+	}
+	
+	public ${originTable} getEntity(){
+		${originTable} entity = new ${originTable}();
+#foreach (${column} in ${tableAllColumns}) 
+		entity.set$column.getCapitalName()(get$column.getCapitalName()());
+#end	
+		return entity;
+	}
+	
+	
+	public Object clone() {
+		Object inst = null;
+		try{
+			inst = super.clone();
+			VFoxsec${originTable} inst1 =  ((VFoxsec${originTable})inst);
+			${secTable} secEntityClone = secEntity != null ? (${secTable})secEntity.clone() : null;
+			inst1.setSecEntity(secEntityClone);
+		}catch (Exception e) {
+			logger.error("Entity.clone error!", e);
+		}
+		
+		return inst;
+	}
+	
+	public boolean equals(Object other) {
+		if ((this == other))
+			return true;
+		if ((other == null))
+			return false;
+		if (!(other instanceof VFoxsec${originTable}))
+			return false;
+		boolean result = super.equals(other);
+		if (!result){
+			return false;
+		}
+		
+		VFoxsec${originTable} castOther = (VFoxsec${originTable}) other;
+		if (castOther.getSecEntity() == null && secEntity == null ){
+			return true;
+		}
+		if(castOther.getSecEntity() == null && secEntity != null){
+			return false;
+		}
+		if(castOther.getSecEntity() != null && secEntity == null){
+			return false;
+		}
+		return castOther.getSecEntity().equals(secEntity);
+	}
+
+	public int hashCode() {
+		int result = super.hashCode();
+		if (secEntity != null){
+			result = 23 * result + secEntity.hashCode();
+		}					
+		return result;
+	}
+}

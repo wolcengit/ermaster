@@ -1,409 +1,893 @@
 package com.foxhis.entity.processer;
-
-import com.foxhis.entity.${originTable};
-#if($tablePkColumns.size() > 1)
-import com.foxhis.entity.${tableEntity}_PK;
-#end
-import com.foxhis.entity.${tableEntity};
+import com.foxhis.entity.*;
 import com.foxhis.entity.ejbutil.*;
 import com.foxhis.pms.biz.FoxPublicBiz;
 import com.foxhis.utils.FoxValidateUtil;
 import com.foxhis.utils.FoxDesensitizedUtil;
 import com.foxhis.utils.SessionUtils;
 import org.apache.commons.lang.StringUtils;
-
 import javax.ejb.Local;
 import javax.ejb.Stateless;
 import java.util.Date;
+import java.util.Objects;
+import java.util.List;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import com.foxhis.utils.FoxMessageDigestUtils;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 
-@Stateless(name="$tableEntity.toLowerCase()")
+@Stateless(name="$tableName.toLowerCase()")
 @Local(FoxSecurityEntityProcesser.class)
-public class ${tableEntity}_SecurityEntityProcesser implements FoxSecurityEntityProcesser<${originTable}, ${tableEntity}> {
+public class ${tableName}_SecurityEntityProcesser extends AbstractFoxSecurityEntityProcesser<${originTable}, ${secTable}> {
+#set($cc1 = ",name,name1,name2,name4,contactor,guestname,empnoname,saleid_name,cusname,cusno_des,agent_des,source_des,group_des,groupno_des,receipname,cby_name,")
+#set($cc1_1 = ",applname,usename,accntname,invoicename,accntname1,workername,empname,reportname,pmsname,attname,attname2,cbyname,unitname,htlname,owner_name,guide_name,dsb_name,")
+#set($cc1_2 = ",contractname,holdname,signname,invoicename,hname,haccntname,signname2,guest_name,haccnt_des,worker,wokername,reportname,pmsname,ename,contractname,salename,resname,")
+#set($cc1_3 = ",collector,contacter,res_name,groupname,resbyname,competitor_name,realname,sourcename,agentname,cplperson,signby_des,findman,dealman,")
+#set($cc2 = ",mobile,phone,contact_mobile,contactor_mobile,tele_phone,addressee,receipmobile,applymobile,usemobile,accept_mobile,warning_mobile,reviewer_mobile,dsb_mobile,")
+#set($cc2_1 = ",guest_phone,linkmobile,wlmobile,cplman_phone,accept_mobile,receiver,")
+#set($cc3 = ",tel,telephone,")
+#set($cc4 = ",email,receipemail,contact_email,")
+#set($cc5 = ",address,address2,street,mailing_address,guest_address,address1,")
+#set($cc6 = ",bankcode,")
+#set($cc7 = ",fname,")
+#set($cc8 = ",sex,sex_des,race,race_des,")
 
-    @Override
-    public FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> beforeSave(${originTable} ent) {
-        // 判断是否有值需要处理
-        ObjFacadeBase objFacadeBase = EjbFacadeUtil.getFacadeLocal(ObjFacadeBase.class);
-#if($tablePkColumns.size() == 1)
-#foreach (${column} in ${tablePkColumns}) 
-        ${tableEntity} secent = ($tableEntity) objFacadeBase.findById(${tableEntity}.class, ent.get$column.getCapitalName()());
+#set($secColumnCount=0)
+#foreach (${securityColumn} in ${securityColumns})
+#if(!${securityColumn.isQry()} && !${securityColumn.isSci()})
+#set($secColumnCount = $secColumnCount+1) 
+#end   
 #end
+    @Override
+    public boolean processed(Serializable pk){
+    	String sql = "select 1 from ${secTable.toLowerCase()} where ";
+	    QueryParameters parameters = new QueryParameters();
+	    if (pk != null){
+#if($tablePkColumns.size() == 1)
+			sql+= " $tablePk.getName()=:$tablePk.getName() and ";
+			parameters.addParameter("$tablePk.getName()", pk);
 #elseif($tablePkColumns.size() > 1)
-        ${tableEntity}_PK secpk = new ${tableEntity}_PK();
-#foreach (${column} in ${tablePkColumns}) 
+	        ${originTable}_PK entityPk = (${originTable}_PK)pk;
+#foreach (${column} in ${tablePkColumns})
+	       	sql+= " ${column.getName()}=:${column.getName()} and ";
+			parameters.addParameter("${column.getName()}", entityPk.get${column.getCapitalName()}());
+#end
+#end
+	    }
+#set($index = 1)    
+#foreach (${securityColumn} in ${securityColumns})
+#if(!${securityColumn.isQry()} && !${securityColumn.isSci()})
+		sql+= " sec_${securityColumn.getOriginColumn()} is not null #if($index < $secColumnCount) and #end ";
+#set($index = $index+1)    
+#end
+#end
+#set($index = 0)  
+		sql+= " order by #if($tablePkColumns.size() == 1) $tablePk.getName() asc #elseif($tablePkColumns.size() > 1)#foreach (${column} in ${tablePkColumns})#if($index > 0), #end${column.getName()} asc #set($index = $index+1)#end #end ";
+		sql+= " limit 0,1 ";
+		SQLFacadeBase sqlFacadeBase = EjbFacadeUtil.getFacadeLocal(SQLFacadeBase.class);
+		Object ret = sqlFacadeBase.getSingleResult(sql, parameters);		
+		return Objects.equals(ret, 1);
+    }
+    
+    @Override
+    public VFoxsecEntity getVFoxsecEntity(Serializable pk){
+#if(${originTable} == ${secTable})
+    	//统一张表，不封装
+    	return null;
+#else 	
+		${originTable} entity = getOriginEntity(${originTable}.class, pk);
+		if (entity == null){
+			return null;
+		}
+		Serializable secEntityPk = null;
+#if($tablePkColumns.size() == 1)
+		secEntityPk = pk;
+#elseif($tablePkColumns.size() > 1)
+		${originTable}_PK originEntityPK = (${originTable}_PK)pk;
+        ${secTable}_PK secpk = new ${secTable}_PK();
+#foreach (${column} in ${tablePkColumns})
+        secpk.set$column.getCapitalName()(originEntityPK.get$column.getCapitalName()());
+#end	
+		secEntityPk = secpk;
+#end
+		${secTable} secEntity = getSecEntity(secEntityPk);
+		VFoxsec${originTable} vEntity = new VFoxsec${originTable}();
+		vEntity.setSecEntity(secEntity);
+		vEntity.setEntity(entity);
+		return vEntity;
+#end	
+    }
+    
+    @Override
+    public VFoxsecEntity getVFoxsecEntity(${originTable} ent){
+#if(${originTable} == ${secTable})
+    	//统一张表，不封装
+    	return null;
+#else 
+		Serializable entityPk = null;
+#if($tablePkColumns.size() == 1)
+		entityPk = ent.get$tablePk.getCapitalName()();
+#elseif($tablePkColumns.size() > 1)
+        ${secTable}_PK secpk = new ${secTable}_PK();
+#foreach (${column} in ${tablePkColumns})
+        secpk.set$column.getCapitalName()(ent.get$column.getCapitalName()());
+#end	
+		entityPk = secpk;
+#end
+		${secTable} secEntity = getSecEntity(entityPk);
+		VFoxsec${originTable} vEntity = new VFoxsec${originTable}();
+		vEntity.setSecEntity(secEntity);
+		vEntity.setEntity(ent);
+		return vEntity;
+#end	
+    }
+    
+    @Override
+    public List getVFoxsecEntity(List<${originTable}> ents){
+#if(${originTable} == ${secTable})
+    	//统一张表，不封装
+    	return null;
+#else 	
+	    SQLFacadeBase sqlFacadeBase = EjbFacadeUtil.getFacadeLocal(SQLFacadeBase.class);
+	    QueryParameters parameters = new QueryParameters(false);
+#set($pkColConditions = "")
+#set($selPkColumns = "")
+#set($resultPkKey = "")
+#set($pkKey = "")
+#set($columnIndex = 0)
+#foreach (${column} in ${tablePkColumns})
+	#set($originColumn = ${column.getName()})
+	#set($selPkColumns = $selPkColumns + $originColumn)
+	#set($pkColConditions = $pkColConditions + "?")
+	#set($resultPkKey = $resultPkKey + "result["+$columnIndex+"].toString()")
+	#set($pkKey = $pkKey + "ent.get${column.getCapitalName()}()")
+	#set($columnIndex = $columnIndex + 1)
+	#if($foreach.hasNext)
+		#set($selPkColumns = $selPkColumns + ",")
+		#set($pkColConditions = $pkColConditions + ",")
+		#set($resultPkKey = $resultPkKey + "+""-""+")
+		#set($pkKey = $pkKey + "+""-""+")
+	#end
+#end
+
+#set($index = 0)
+#set($selColumns = "")
+#foreach (${column} in ${tableAllColumns})
+#if($index > 0)
+#set($selColumns = $selColumns + ",")
+#end
+#set($selColumns = $selColumns + ${column.getName()})
+#set($index = $index+1)
+#end
+		String sql = "select ${selColumns} from ${secTable.toLowerCase()} where ($selPkColumns) in (";
+		int index = 1;
+		Map<String, VFoxsec${originTable}> entityMap = new HashMap(ents.size());
+		List<VFoxsec${originTable}> vEntitys = new ArrayList(ents.size());
+		for (${originTable} ent : ents){
+			sql += "(${pkColConditions}),";
+#foreach (${column} in ${tablePkColumns})
+			parameters.addParameter(index++, ent.get${column.getCapitalName()}());
+#end
+			VFoxsec${originTable} vEntity = new VFoxsec${originTable}();
+			vEntity.setEntity(ent);
+			vEntitys.add(vEntity);
+			entityMap.put($pkKey, vEntity);
+		}
+		sql = sql.substring(0, sql.length()-1);
+		sql += ") ";
+		List<Object[]> results = sqlFacadeBase.getResultList(sql, parameters);
+		if (results == null || results.isEmpty()){
+			return null;	    
+		}
+		for (Object[] secData : results){
+			${secTable} ent = new ${secTable}();
+#set($index = 0)
+#foreach (${column} in ${tableAllColumns})
+			ent.set${column.getCapitalName()}((${column.getJavaClass()})secData[$index]);
+#set($index = $index+1)
+#end
+			VFoxsec${originTable} vEntity = entityMap.get($pkKey);
+			if (vEntity == null){
+				continue;
+			}
+			vEntity.setSecEntity(ent);
+		}
+		return vEntitys;
+#end	
+    }   
+    
+    @Override
+    public void deleteSecEntity(${originTable} ent){
+#if(${originTable} == ${secTable})
+    	//统一张表，不封装
+    	return;
+#else 
+		Serializable entityPk = null;
+#if($tablePkColumns.size() == 1)
+		entityPk = ent.get$tablePk.getCapitalName()();
+#elseif($tablePkColumns.size() > 1)
+        ${secTable}_PK secpk = new ${secTable}_PK();
+#foreach (${column} in ${tablePkColumns})
+        secpk.set$column.getCapitalName()(ent.get$column.getCapitalName()());
+#end	
+		entityPk = secpk;
+#end
+		${secTable} secEntity = getSecEntity(entityPk);
+		if (secEntity == null){
+			return;
+		}
+		deleteSecEntity(${secTable}.class, secEntity, entityPk);
+#end
+    } 
+    
+    @Override
+    public FoxSecurityEntityProcesserResponse<${originTable}, ${secTable}> beforeSave(${originTable} ent) throws NoSuchAlgorithmException,NoSuchProviderException{
+        int process = 0;
+        Serializable entityPk = null;
+        FoxSecurityEntityProcesserResponse<${originTable}, ${secTable}> response = new FoxSecurityEntityProcesserResponse<>();
+        response.setOriginEntity((${originTable})(ent.clone()));
+#if($tablePkColumns.size() == 1)
+		entityPk = ent.get$tablePk.getCapitalName()();
+#elseif($tablePkColumns.size() > 1)
+        ${secTable}_PK secpk = new ${secTable}_PK();
+#foreach (${column} in ${tablePkColumns})
         secpk.set$column.getCapitalName()(ent.get$column.getCapitalName()());
 #end
-        ${tableEntity} secent = (${tableEntity}) objFacadeBase.findById(${tableEntity}.class, secpk);
-#end  
-        boolean isnew = false;
-        if (secent == null) {
-            isnew = true;
-            secent = new ${tableEntity}();
-#foreach (${column} in ${tablePkColumns}) 
-        	secent.set$column.getCapitalName()(ent.get$column.getCapitalName()());
+		entityPk = secpk;
 #end
-            secent.setCby(SessionUtils.getEmpno());
-            secent.setChanged(new Date());
-        }
-        int process = 0;
-#if ($originSecurityColumn)
-#foreach (${securityColumn} in ${originSecurityColumn}) 
-#if(${securityColumn} == "name")
-        // name
-        if (StringUtils.isNotBlank(ent.getName())) {
-            String name = ent.getName();
-            String name0 = FoxSecurityHelper.encode(name);
-            if (!name0.equals(secent.getName0())) {
-                // 更新
-                secent.setName0(name0);
-#if($originSecurityColumn.contains("lname"))
-                secent.setName1(ent.getLname());
+#if(${originTable} == ${secTable})
+		ObjFacadeBase objFacadeBase = EjbFacadeUtil.getFacadeLocal(ObjFacadeBase.class);
+		${originTable} oldEntity = (${originTable})objFacadeBase.findById(${originTable}.class, entityPk);
+		boolean isNew = oldEntity == null;
+		boolean isSecNew = isNew;		
+#foreach (${securityColumn} in ${securityColumns})
+#if(!${securityColumn.isQry()} && !${securityColumn.isSci()} )
+#set($co = ${securityColumn.getOriginColumn()})
+#set($isQry = $qryColumns.contains($co))
+#set($cu = ${securityColumn.getOriginColumnCapitalName()})
+#set($cc = ","+${securityColumn.getOriginColumn()}+",")
+		// sci_${co}
+		String new${cu} = StringUtils.isBlank(ent.get${cu}()) ? "" : ent.get${cu}();
+		String old${cu} = (oldEntity != null && StringUtils.isNotBlank(oldEntity.get${cu}())) ? oldEntity.get${cu}() : "";
+		if (!Objects.equals(new${cu}, old${cu}) || StringUtils.isBlank(ent.getSci_${co}())){
+			String newSci${cu} = "".equals(new${cu}) ? new${cu} : FoxMessageDigestUtils.SM3Hex(new${cu}.getBytes());
+			String oldSci${cu} = (oldEntity != null && StringUtils.isNotBlank(oldEntity.getSci_${co}())) ? oldEntity.getSci_${co}() : "";
+			if (!Objects.equals(newSci${cu}, oldSci${cu})){
+				process++;
+				// sec_${co}
+				String nencSec${cu} = StringUtils.isBlank(new${cu}) ? "" : FoxSecurityHelper.encode(new${cu});
+				ent.setSec_${co}(nencSec${cu});
+				// sci_${co}
+				ent.setSci_${co}(newSci${cu});
+#if($cc1.contains(${cc}) || $cc1_1.contains(${cc}) || $cc1_2.contains(${cc}) || $cc1_3.contains(${cc})) 
+#if((${originTable} == "Master" || ${originTable} == "Hmaster") && (${co} == "name" || ${co} == "fname" || ${co} == "lname"|| ${co} == "name2"))
+        		if (Objects.equals(ent.getCat(), "F") && StringUtils.isNotBlank(ent.get${cu}())){
+        			ent.set${cu}(desensitize("$co", ent.get${cu}(), ent));
+        		} 
+#elseif((${originTable} == "Guest") && ((${co} == "name" || ${co} == "fname" || ${co} == "lname"|| ${co} == "name2")))
+				if (Objects.equals(ent.getCls(), "F") && StringUtils.isNotBlank(ent.get${cu}())){
+        			ent.set${cu}(desensitize("$co", ent.get${cu}(), ent));
+				}
 #else
-                FoxPublicBiz biz = EjbFacadeUtil.getFacadeLocal(FoxPublicBiz.class);
-                String[] newname = biz.splitGuestName(name, true, "Name");
-                String lname = newname[3];
-                String fname = newname[4];
-                secent.setName1(lname);
-#end
-#if($originSecurityColumn.contains("fname"))
-                secent.setName2(StringUtils.isNotBlank(ent.getFname()) ? FoxSecurityHelper.encode(ent.getFname()) : "");
-#else
-                secent.setName2(StringUtils.isNotBlank(fname) ? FoxSecurityHelper.encode(fname) : "");
-#end
-#if($originSecurityColumn.contains("name2"))
-                secent.setName3(StringUtils.isNotBlank(ent.getName2()) ? FoxSecurityHelper.encode(ent.getName2()) : "");
-#end
-                process++;
-            }
-        } else {
-            if (!isnew) {
-                // 清理
-                secent.setName0("");
-                secent.setName1("");
-                secent.setName2("");
-#if($originSecurityColumn.contains("name2"))
-                secent.setName3("");
-#end
-                process++;
-            }
-        }
-#elseif(${securityColumn} == "ident")
-        //indent
-        if (StringUtils.isNotBlank(ent.getIdent())) {
-            String ident = ent.getIdent();
-            String ident0 = FoxSecurityHelper.encode(ident);
-            if (!ident0.equals(secent.getIdent0())) {
-                // 更新
-                secent.setIdent0(ident0);
-                secent.setIdent1(ident.length() > 6 ? ident.substring(0, 6) : ident);
-                secent.setIdent2(ident.length() > 6 ? FoxSecurityHelper.encode(ident.substring(6)) : "");
-                process++;
-            }
-        } else {
-            if (!isnew) {
-                // 清理
-                secent.setIdent0("");
-                secent.setIdent1("");
-                secent.setIdent2("");
-                process++;
-            }
-        }
-#elseif(${securityColumn} == "mobile")
-        //mobile
-        String mobile = ent.getMobile();
-        if (StringUtils.isNotBlank(mobile) &&  FoxValidateUtil.isPhone(mobile)) {
-            String mob0 = FoxSecurityHelper.encode(mobile);
-            if (!mob0.equals(secent.getMob0())) {
-                // 更新
-                secent.setMob0(mob0);
-                secent.setMob1(mobile.substring(0, 3));
-                secent.setMob2(FoxSecurityHelper.encode(mobile.substring(3, 7)));
-                secent.setMob3(mobile.substring(7));
-                process++;
-            }
-        } else {
-            if (!isnew) {
-                // 清理
-                secent.setMob0("");
-                secent.setMob1("");
-                secent.setMob2("");
-                secent.setMob3("");
-                process++;
-            }
-        }
-#elseif(${securityColumn} == "phone")
-        //phone
-        String phone = ent.getPhone();
-        if (StringUtils.isNotBlank(phone) &&  FoxValidateUtil.isPhone(phone)) {
-#if($originSecurityColumn.contains("mobile"))
-            String phone0 = FoxSecurityHelper.encode(phone);
-            if (!phone0.equals(secent.getPhone0())) {
-                // 更新
-                secent.setPhone0(phone0);
-                secent.setPhone1(phone.substring(0, 3));
-                secent.setPhone2(FoxSecurityHelper.encode(phone.substring(3, 7)));
-                secent.setPhone3(phone.substring(7));
-                process++;
-            }
-#else
-            String mob0 = FoxSecurityHelper.encode(phone);
-            if (!mob0.equals(secent.getMob0())) {
-                // 更新
-                secent.setMob0(mob0);
-                secent.setMob1(phone.substring(0, 3));
-                secent.setMob2(FoxSecurityHelper.encode(phone.substring(3, 7)));
-                secent.setMob3(phone.substring(7));
-                process++;
-            }
-#end    
-        } else {
-            if (!isnew) {
-                // 清理
-#if($originSecurityColumn.contains("mobile"))
-            	secent.setPhone0("");
-                secent.setPhone1("");
-                secent.setPhone2("");
-                secent.setPhone3("");
-#else
-            	secent.setMob0("");
-                secent.setMob1("");
-                secent.setMob2("");
-                secent.setMob3("");
-#end
-                process++;
-            }
-        }
-#elseif(${securityColumn} == "contactor")
-        // contactor
-        if (StringUtils.isNotBlank(ent.getContactor())) {
-            String name = ent.getContactor();
-            String name0 = FoxSecurityHelper.encode(name);
-            if (!name0.equals(secent.getCname0())) {
-                FoxPublicBiz biz = EjbFacadeUtil.getFacadeLocal(FoxPublicBiz.class);
-                String[] newname = biz.splitGuestName(name, true, "Name");
-                String lname = newname[3];
-                String fname = newname[4];
-                // 更新
-                secent.setCname0(name0);
-                secent.setCname1(fname);
-                secent.setCname2(StringUtils.isNotBlank(lname) ? FoxSecurityHelper.encode(lname) : "");
-                process++;
-            }
-        } else {
-            if (!isnew) {
-                // 清理
-                secent.setCname0("");
-                secent.setCname1("");
-                secent.setCname2("");
-                process++;
-            }
-        }
-#elseif(${securityColumn} == "contact_mobile")
-        String contactMobile = ent.getContact_mobile();
-        if (StringUtils.isNotBlank(contactMobile) && FoxValidateUtil.isPhone(contactMobile)) {
-            String mob0 = FoxSecurityHelper.encode(contactMobile);
-            if (!mob0.equals(secent.getCmob0())) {
-                // 更新
-                secent.setCmob0(mob0);
-                secent.setCmob1(contactMobile.substring(0, 3));
-                secent.setCmob2(FoxSecurityHelper.encode(contactMobile.substring(3, 7)));
-                secent.setCmob3(contactMobile.substring(7));
-                process++;
-            }
-        } else {
-            if (!isnew) {
-                // 清理
-                secent.setCmob0("");
-                secent.setCmob1("");
-                secent.setCmob2("");
-                secent.setCmob3("");
-                process++;
-            }
-        }
+				if (StringUtils.isNotBlank(ent.get${cu}())) {
+					ent.set${cu}(desensitize("$co", ent.get${cu}(), ent));
+				}
 #end	
+#else
+				ent.set${cu}(desensitize("$co", ent.get${cu}(), ent));
+#end	
+#if($isQry)
+        		// qry_${co}
+#set($qryColumnLength = ${qryColumnLengthMap.get($co)})
+#set($maxSizeLength=$qryColumnLength/25)
+				String qry${cu} = new${cu};
+				if(qry${cu}.length() > $maxSizeLength){
+					qry${cu} = qry${cu}.substring(0, $maxSizeLength);	
+				}
+#if("ident" == ${co})        
+        		String nencQry${cu} = FoxSecurityHelper.encodeForQueryIdentColumn(qry${cu});
+#elseif($cc2.contains(${cc}) || $cc2_1.contains(${cc})) 
+#if((${originTable} == "Message_send") || (${originTable} == "Hmessage_send"))	
+				String nencQry${cu} = null;
+				if("EMAIL".equals(ent.getType())){
+					nencQry${cu} = FoxSecurityHelper.encodeForNormalQueryColumn(qry${cu});
+				} else {			
+					nencQry${cu} = FoxSecurityHelper.encodeForQueryMobileColumn(qry${cu});
+				}
+#else
+				String nencQry${cu} = FoxSecurityHelper.encodeForQueryMobileColumn(qry${cu});
+#end
+#else
+				String nencQry${cu} = FoxSecurityHelper.encodeForNormalQueryColumn(qry${cu});
+#end
+        		ent.setQry_${co}(nencQry${cu});
+#end
+			} else if (StringUtils.isBlank(newSci${cu})){
+				process++;
+				// sec_${co}
+				ent.setSec_${co}("");
+				// sci_${co}
+				ent.setSci_${co}("");
+#if($isQry)				
+        		// qry_${co}
+        		ent.setQry_${co}("");
+#end
+			} else {
+				ent.set${cu}(old${cu});
+			}			
+		}
 #end
 #end
-        FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> response = new FoxSecurityEntityProcesserResponse<>();
-        response.setEntity(ent);
-        response.setSecEntity(secent);
-        response.setExist(isnew);
+		response.setEntity(ent);
+        response.setSecEntity(ent);
+		
+#else
+		VFoxsec${originTable} vEntity = null;
+		if (ent instanceof VFoxsecEntity){
+			vEntity = (VFoxsec${originTable})ent;
+		} else {
+			vEntity = new VFoxsec${originTable}();
+			vEntity.setEntity(ent);
+		}
+		${secTable} lastSecEntity = vEntity.getSecEntity();
+		if (lastSecEntity == null){
+			lastSecEntity = new ${secTable}();
+#if($tablePkColumns.size() == 1)
+			lastSecEntity.set$tablePk.getCapitalName()(ent.get$tablePk.getCapitalName()());
+#elseif($tablePkColumns.size() > 1)
+#foreach (${column} in ${tablePkColumns})
+        	lastSecEntity.set$column.getCapitalName()(ent.get$column.getCapitalName()());
+#end
+#end		
+			lastSecEntity.setCby(ent.getCby());
+			lastSecEntity.setChanged(new Date());	
+			vEntity.setSecEntity(lastSecEntity);
+		}
+		Serializable originPk = null;
+#if($tablePkColumns.size() == 1)
+		originPk = ent.get$tablePk.getCapitalName()();
+#elseif($tablePkColumns.size() > 1)
+        ${originTable}_PK originEntityPK = new ${originTable}_PK();
+#foreach (${column} in ${tablePkColumns})
+        originEntityPK.set$column.getCapitalName()(ent.get$column.getCapitalName()());
+#end	
+		originPk = originEntityPK;
+#end	
+        VFoxsec${originTable} vOldEntity = (VFoxsec${originTable})getVFoxsecEntity(originPk);
+        ${secTable} oldSecEntity = vOldEntity == null ? null : vOldEntity.getSecEntity();
+        boolean isNew = vOldEntity == null;
+        boolean isSecNew = isNew ? true : oldSecEntity == null;		
+#foreach (${securityColumn} in ${securityColumns})
+#if(!${securityColumn.isQry()} && !${securityColumn.isSci()} )
+#set($co = ${securityColumn.getOriginColumn()})
+#set($isQry = $qryColumns.contains($co))
+#set($cu = ${securityColumn.getOriginColumnCapitalName()})
+#set($cc = ","+${securityColumn.getOriginColumn()}+",")
+		// sci_${co}
+		String new${cu} = (vEntity != null && StringUtils.isNotBlank(vEntity.get${cu}())) ? vEntity.get${cu}() : "";
+		String old${cu} = (vOldEntity != null && StringUtils.isNotBlank(vOldEntity.get${cu}())) ? vOldEntity.get${cu}() : "";
+		if (!Objects.equals(new${cu}, old${cu}) || StringUtils.isBlank(lastSecEntity.getSci_${co}())){
+			String newSci${cu} = "".equals(new${cu}) ? new${cu} : FoxMessageDigestUtils.SM3Hex(new${cu}.getBytes());
+			String oldSci${cu} = (oldSecEntity != null && StringUtils.isNotBlank(oldSecEntity.getSci_${co}())) ? oldSecEntity.getSci_${co}() : "";
+			if (!Objects.equals(newSci${cu}, oldSci${cu})){
+				process++;
+				// sec_${co}
+				String nencSec${cu} = StringUtils.isBlank(new${cu}) ? "" : FoxSecurityHelper.encode(new${cu});
+				lastSecEntity.setSec_${co}(nencSec${cu});
+				// sci_${co}
+				lastSecEntity.setSci_${co}(newSci${cu});
+#if($cc1.contains(${cc}) || $cc1_1.contains(${cc}) || $cc1_2.contains(${cc}) || $cc1_3.contains(${cc})) 
+#if((${originTable} == "Master" || ${originTable} == "Hmaster") && (${co} == "name" || ${co} == "fname" || ${co} == "lname"|| ${co} == "name2"))
+        		if (Objects.equals(vEntity.getCat(), "F") && StringUtils.isNotBlank(vEntity.get${cu}())){
+        			vEntity.set${cu}(desensitize("$co", vEntity.get${cu}(), ent));
+        		} 
+#elseif((${originTable} == "Guest") && ((${co} == "name" || ${co} == "fname" || ${co} == "lname"|| ${co} == "name2")))
+				if (Objects.equals(vEntity.getCls(), "F") && StringUtils.isNotBlank(vEntity.get${cu}())){
+        			vEntity.set${cu}(desensitize("$co", vEntity.get${cu}(), ent));
+				}
+#else
+				if (StringUtils.isNotBlank(vEntity.get${cu}())) {
+					vEntity.set${cu}(desensitize("$co", vEntity.get${cu}(), ent));
+				}
+#end
+#else
+				vEntity.set${cu}(desensitize("$co", vEntity.get${cu}(), ent));
+#end		
+#if($isQry)
+        		// qry_${co}
+#set($qryColumnLength = ${qryColumnLengthMap.get($co)})
+#set($maxSizeLength=$qryColumnLength/25)
+				String qry${cu} = new${cu};
+				if(qry${cu}.length() > $maxSizeLength){
+					qry${cu} = qry${cu}.substring(0, $maxSizeLength);	
+				}
+#if("ident" == ${co})        
+        		String nencQry${cu} = FoxSecurityHelper.encodeForQueryIdentColumn(qry${cu});
+#elseif($cc2.contains(${cc}) || $cc2_1.contains(${cc})) 
+#if((${originTable} == "Message_send") || (${originTable} == "Hmessage_send"))	
+				String nencQry${cu} = null;
+				if("EMAIL".equals(ent.getType())){
+					nencQry${cu} = FoxSecurityHelper.encodeForNormalQueryColumn(qry${cu});
+				} else {			
+					nencQry${cu} = FoxSecurityHelper.encodeForQueryMobileColumn(qry${cu});
+				}
+#else
+				String nencQry${cu} = FoxSecurityHelper.encodeForQueryMobileColumn(qry${cu});
+#end
+#else
+				String nencQry${cu} = FoxSecurityHelper.encodeForNormalQueryColumn(qry${cu});
+#end
+        		lastSecEntity.setQry_${co}(nencQry${cu});
+#end
+			} else if (StringUtils.isBlank(newSci${cu})){
+				process++;
+				// sec_${co}
+				lastSecEntity.setSec_${co}("");
+				// sci_${co}
+				lastSecEntity.setSci_${co}("");
+#if($isQry)				
+        		// qry_${co}
+        		lastSecEntity.setQry_${co}("");
+#end
+			} else {
+				vEntity.set${cu}(old${cu});
+			}	
+		}  
+#end
+#end       
+		response.setEntity(vEntity.getEntity());
+		response.setvEntity(vEntity);
+        response.setSecEntity(lastSecEntity);
+#end		
+        response.setSecExist(!isSecNew);
+        response.setExist(!isNew);
         response.setModified(process > 0);
         return response;
     }
     
-	@Override
-    public int saving(FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> processerResponse, DatabaseOperationMode operationMode) {
-        if (processerResponse.getSecEntity() == null || !processerResponse.isModified()) {
-            return 0;
-        }
-        ${tableEntity} foxsecEntity = processerResponse.getSecEntity();
-        switch (operationMode) {
-            case SQL:{
-                SQLFacadeBase sqlFacadeBase =  EjbFacadeUtil.getFacadeLocal(SQLFacadeBase.class);
-                String sql = processerResponse.isExist() ? EntitySqlUtil.getUpdateSql(foxsecEntity, null) : EntitySqlUtil.getInsertSql(foxsecEntity);
-                return sqlFacadeBase.executeUpdate(sql, null);
-            }
-            case JPQL:{
-                JPQLFacadeBase jpqlFacadeBase =  EjbFacadeUtil.getFacadeLocal(JPQLFacadeBase.class);
-                String sql = processerResponse.isExist() ? EntitySqlUtil.getUpdateSql(foxsecEntity, null) : EntitySqlUtil.getInsertSql(foxsecEntity);
-                return jpqlFacadeBase.executeUpdate(sql, null);
-            }
-
-            case OBJ:{
-                ObjFacadeBase objFacadeBase =  EjbFacadeUtil.getFacadeLocal(ObjFacadeBase.class);
-                if(processerResponse.isExist()){
-                    objFacadeBase.update(foxsecEntity);
-                } else {
-                    objFacadeBase.save(foxsecEntity);
-                }
-                return 1;
-            }
-
-            default:{
-                return 0;
-            }
-        }
-    }
-
     @Override
-    public FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> afterSaved(FoxSecurityEntityProcesserResponse<${originTable}, ${tableEntity}> response) {
-        ${originTable} entity = response.getEntity();
-        entity = desensitize(entity);
-        response.setEntity(entity);
-        return response;
-    }
-    
-
-    @Override
-    public Object afterRetrieve(${originTable} ent) {
-        ObjFacadeBase objFacadeBase = EjbFacadeUtil.getFacadeLocal(ObjFacadeBase.class);
+    public Object afterRetrieve(${originTable} ent, ${secTable} secent) {
+#if(${originTable} == ${secTable})
+		secent = ent;
+#else
+		if (secent == null){
+			Serializable entityPk = null;
 #if($tablePkColumns.size() == 1)
-#foreach (${column} in ${tablePkColumns}) 
-        ${tableEntity} secent = (${tableEntity}) objFacadeBase.findById(${tableEntity}.class, ent.get$column.getCapitalName()());
-#end
+			entityPk = ent.get$tablePk.getCapitalName()();
 #elseif($tablePkColumns.size() > 1)
-        ${tableEntity}_PK secpk = new ${tableEntity}_PK();
-#foreach (${column} in ${tablePkColumns}) 
-        secpk.set$column.getCapitalName()(ent.get$column.getCapitalName()());
+        	${secTable}_PK secpk = new ${secTable}_PK();
+#foreach (${column} in ${tablePkColumns})
+        	secpk.set$column.getCapitalName()(ent.get$column.getCapitalName()());
 #end
-        ${tableEntity} secent = (${tableEntity}) objFacadeBase.findById(${tableEntity}.class, secpk);
+			entityPk = secpk;
+#end
+        	secent = getSecEntity(entityPk);
+		}
 #end
         if (secent == null) {
             return ent;
         }
         ${originTable} cloneEntity = (${originTable})ent.clone();
-        
-#if ($originSecurityColumn)
-#foreach (${securityColumn} in ${originSecurityColumn}) 
-#if(${securityColumn} == "name")
-        // name
-        if (StringUtils.isNotBlank(secent.getName0())) {
-            cloneEntity.setName(FoxSecurityHelper.decode(secent.getName0()));
+        //不可解密的数据
+        if (!solvable(ent)){
+        	return cloneEntity;
         }
-#elseif(${securityColumn} == "fname")
-        //fname
-        if (StringUtils.isNotBlank(secent.getName2())) {
-            cloneEntity.setFname(FoxSecurityHelper.decode(secent.getName2()));
-        }
-#elseif(${securityColumn} == "lname")
-        //lname
-        cloneEntity.setLname(secent.getName1());
-#elseif(${securityColumn} == "name2")
-        //name2
-        if (StringUtils.isNotBlank(secent.getName3())) {
-            cloneEntity.setName2(FoxSecurityHelper.decode(secent.getName3()));
-        }
-#elseif(${securityColumn} == "ident")
-        //indent
-        if (StringUtils.isNotBlank(secent.getIdent0())) {
-            cloneEntity.setIdent(FoxSecurityHelper.decode(secent.getIdent0()));
-        }
-#elseif(${securityColumn} == "mobile")
-        //mobile
-        if (StringUtils.isNotBlank(secent.getMob0())) {
-            cloneEntity.setMobile(FoxSecurityHelper.decode(secent.getMob0()));
-        }
-#elseif(${securityColumn} == "phone")
-        //phone
-#if($originSecurityColumn.contains("mobile"))
-        if (StringUtils.isNotBlank(secent.getPhone0())) {
-            cloneEntity.setPhone(FoxSecurityHelper.decode(secent.getPhone0()));
-        }
-#else
-        if (StringUtils.isNotBlank(secent.getMob0())) {
-            cloneEntity.setPhone(FoxSecurityHelper.decode(secent.getMob0()));
-        }
+#foreach (${securityColumn} in ${securityColumns})
+#set($co = ${securityColumn.getOriginColumn()})
+#set($cu = ${securityColumn.getOriginColumnCapitalName()})
+#set($isQry = $qryColumns.contains($co))
+#if(!${securityColumn.isQry()} && !${securityColumn.isSci()})
+        // sec_${co}
+        if (StringUtils.isNotBlank(secent.getSec_${co}())) {
+            cloneEntity.set${cu}(FoxSecurityHelper.decode(secent.getSec_${co}()));
+#if(${originTable} == ${secTable})
+			cloneEntity.setSec_${co}("");
+#if($isQry)	
+			cloneEntity.setQry_${co}("");
 #end
-#elseif(${securityColumn} == "contactor")
-        // contactor
-        if (StringUtils.isNotBlank(secent.getCname0())) {
-            cloneEntity.setContactor(FoxSecurityHelper.decode(secent.getCname0()));
+#end
         }
-#elseif(${securityColumn} == "contact_mobile")
-        if (StringUtils.isNotBlank(secent.getCmob0())) {
-            cloneEntity.setContact_mobile(FoxSecurityHelper.decode(secent.getCmob0()));
-        }
-#end	
 #end
 #end
         return cloneEntity;
     }
+    
+    @Override
+    public List<${originTable}> afterRetrieve(List ents) {
+    	if (ents == null || ents.isEmpty()) {
+            return ents;
+        }
+        List<${originTable}> newList = new ArrayList(ents.size());
+#if(${originTable} == ${secTable})
+		for(Object ent : ents){
+			if(ent == null){
+				continue;
+			}
+			${originTable} entity = ((${originTable})ent);
+			${originTable} cloneEntity = (${originTable})entity.clone();
+#foreach (${securityColumn} in ${securityColumns})
+#set($co = ${securityColumn.getOriginColumn()})
+#set($cu = ${securityColumn.getOriginColumnCapitalName()})
+#set($isQry = $qryColumns.contains($co))
+#if(!${securityColumn.isQry()} && !${securityColumn.isSci()})
+			// sec_${co}
+			if (StringUtils.isNotBlank(cloneEntity.getSec_${co}())) {
+            	cloneEntity.set${cu}(FoxSecurityHelper.decode(cloneEntity.getSec_${co}()));
+				cloneEntity.setSec_${co}("");
+#if($isQry)	
+				cloneEntity.setQry_${co}("");
+#end
+        	}
+#end
+#end		
+        	newList.add(cloneEntity);	
+		}        
+#else
+	    SQLFacadeBase sqlFacadeBase = EjbFacadeUtil.getFacadeLocal(SQLFacadeBase.class);
+	    QueryParameters parameters = new QueryParameters(false);
+#set($pkColConditions = "")
+#set($selPkColumns = "")
+#set($resultPkKey = "")
+#set($columnIndex = 0)
+#foreach (${column} in ${tablePkColumns})
+	#set($originColumn = ${column.getName()})
+	#set($selPkColumns = $selPkColumns + $originColumn)
+	#set($pkColConditions = $pkColConditions + "?")
+	#set($resultPkKey = $resultPkKey + "result["+$columnIndex+"].toString()")
+	#set($columnIndex = $columnIndex + 1)
+	#if($foreach.hasNext)
+		#set($selPkColumns = $selPkColumns + ",")
+		#set($pkColConditions = $pkColConditions + ",")
+		#set($resultPkKey = $resultPkKey + "+""-""+")
+	#end
+#end
 
+#set($selColumns = $selPkColumns)
+#foreach (${column} in ${securityColumns})
+#if(!${column.isQry()} && !${column.isSci()})
+#set($selColumns = $selColumns + ",")
+#set($selColumns = $selColumns + ${column.getName()})
+#end
+#end
+		String sql = "select ${selColumns} from ${secTable.toLowerCase()} where ($selPkColumns) in (";
+		int index = 1;
+		for (Object ent : ents){
+			sql += "(${pkColConditions}),";
+#foreach (${column} in ${tablePkColumns})
+			parameters.addParameter(index++, ((${originTable})ent).get${column.getCapitalName()}());
+#end
+		}
+		sql = sql.substring(0, sql.length()-1);
+		sql += ") ";
+		List<Object[]> results = sqlFacadeBase.getResultList(sql, parameters);
+		Map<String, Object[]> matchingResultMap = new HashMap<>();
+		if (results != null){
+			for(Object[] result : results){
+				matchingResultMap.put($resultPkKey, result);
+			}
+		}
+		boolean encrypted = false;
+		for (Object ent : ents){
+			if (ent == null){
+				continue;
+			}
+			${originTable} entity = ((${originTable})ent);
+        	//不可解密的数据
+        	if (!solvable(entity)){
+        		newList.add(entity);			
+        		continue;
+        	}
+#set($resultSecColumnIndex = $columnIndex)
+#set($entPkKey = "")
+#foreach (${column} in ${tablePkColumns})
+#set($entPkKey = $entPkKey + "entity.get${column.getCapitalName()}()")
+#if($foreach.hasNext)
+#set($entPkKey = $entPkKey + "+""-""+")
+#end
+#end
+			Object[] secResult = matchingResultMap.get($entPkKey);	
+			encrypted = secResult != null && secResult.length > 0;
+			${originTable} cloneEntity = (${originTable})entity.clone();
+#foreach (${securityColumn} in ${securityColumns})
+#set($cu = ${securityColumn.getOriginColumnCapitalName()})
+#if(!${securityColumn.isQry()} && !${securityColumn.isSci()})
+        	// sec_${cu.toLowerCase()}
+        	if (encrypted && StringUtils.isNotBlank((String)secResult[$resultSecColumnIndex])) {
+            	cloneEntity.set${cu}(FoxSecurityHelper.decode(secResult[$resultSecColumnIndex]));
+        	}
+#set($resultSecColumnIndex = $resultSecColumnIndex+1)
+#end
+#end
+        	newList.add(cloneEntity);			
+		}
+			
+#end
+		return newList;
+    }
+
+	@Override
+    public String desensitize(String columnName, String value, ${originTable} ent) {
+    	if (StringUtils.isBlank(value)) {
+    		return "";
+    	}
+		switch(columnName) {
+#foreach (${securityColumn} in ${securityColumns})
+#if(!$securityColumn.isQry() && !$securityColumn.isSci())
+#set($co = ${securityColumn.getOriginColumn()})
+#set($cc = ","+${securityColumn.getOriginColumn()}+",")
+			case "${securityColumn.getOriginColumn()}": {
+#if("ident" == ${co})        
+        		return FoxDesensitizedUtil.idCardNumByXR(value);
+#elseif($cc1.contains(${cc}) || $cc1_1.contains(${cc}) || $cc1_2.contains(${cc}) || $cc1_3.contains(${cc})) 
+				return FoxDesensitizedUtil.chineseName(value);      
+#elseif($cc2.contains(${cc}) || $cc2_1.contains(${cc})) 
+#if((${originTable} == "Message_send") || (${originTable} == "Hmessage_send"))	
+				if("EMAIL".equals(ent.getType())){
+					 return FoxDesensitizedUtil.email(value);
+				} else {			
+        			return FoxDesensitizedUtil.mobilePhone(value);
+				}
+#else
+        		return FoxDesensitizedUtil.mobilePhone(value);
+#end
+#elseif($cc3.contains(${cc})) 
+        		return FoxDesensitizedUtil.fixedPhone(value);
+#elseif($cc4.contains(${cc})) 
+        		return FoxDesensitizedUtil.email(value);
+#elseif($cc5.contains(${cc})) 
+        		return FoxDesensitizedUtil.address(value);
+#elseif($cc6.contains(${cc})) 
+        		return FoxDesensitizedUtil.bankCard(value);
+#elseif($cc7.contains(${cc})) 
+        		return FoxDesensitizedUtil.desensitize(value, 0);
+#elseif($cc8.contains(${cc})) 
+        		return FoxDesensitizedUtil.sex(value);
+#else
+		//TODO add logic
+#end			
+			}
+#end    
+#end  				
+			default : {
+				return value;
+			}
+		}
+    }
+    
     @Override
     public ${originTable} desensitize(${originTable} entity) {
-#if ($originSecurityColumn)
-#foreach (${securityColumn} in ${originSecurityColumn}) 
-#if(${securityColumn} == "name")
-        // name
-        if (StringUtils.isNotBlank(entity.getName())){
-            entity.setName(FoxDesensitizedUtil.chineseName(entity.getName()));
-            
+#if(${originTable} == ${secTable})
+		${originTable} cloneEntity = entity;
+#else
+		${originTable} cloneEntity = (${originTable})entity.clone();
+#end 
+#foreach (${securityColumn} in ${securityColumns})
+#set($co = ${securityColumn.getOriginColumn()})
+#set($cu = ${securityColumn.getOriginColumnCapitalName()})
+#set($cc = ","+${securityColumn.getOriginColumn()}+",")
+#if(!$securityColumn.isQry() && !$securityColumn.isSci())
+		// sec_${co}
+#if("ident" == ${co})        
+        if (StringUtils.isNotBlank(cloneEntity.getIdent())) {
+            cloneEntity.setIdent(FoxDesensitizedUtil.idCardNumByXR(cloneEntity.getIdent()));
         }
-#elseif(${securityColumn} == "fname")
-        //fname
-        if (StringUtils.isNotBlank(entity.getName())){
-        	entity.setFname(entity.getName().replaceAll("\\*",""));
-        } else {
-        	entity.setFname("");
+#elseif($cc1.contains(${cc}) || $cc1_1.contains(${cc}) || $cc1_2.contains(${cc}) || $cc1_3.contains(${cc})) 
+        
+#if((${originTable} == "Master" || ${originTable} == "Hmaster") && (${co} == "name" || ${co} == "fname" || ${co} == "lname"|| ${co} == "name2"))
+        if (Objects.equals(cloneEntity.getCat(), "F") && StringUtils.isNotBlank(cloneEntity.get${cu}())){
+        	cloneEntity.set${cu}(FoxDesensitizedUtil.chineseName(cloneEntity.get${cu}()));
+        } 
+#elseif((${originTable} == "Guest") && ((${co} == "name" || ${co} == "fname" || ${co} == "lname"|| ${co} == "name2")))
+		if (Objects.equals(cloneEntity.getCls(), "F") && StringUtils.isNotBlank(cloneEntity.get${cu}())){
+        	cloneEntity.set${cu}(FoxDesensitizedUtil.chineseName(cloneEntity.get${cu}()));
+		}
+#else
+		if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+			cloneEntity.set${cu}(FoxDesensitizedUtil.chineseName(cloneEntity.get${cu}()));
+		}
+#end	      
+#elseif($cc2.contains(${cc}) || $cc2_1.contains(${cc})) 
+        if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+#if((${originTable} == "Message_send") || (${originTable} == "Hmessage_send"))	
+			if("EMAIL".equals(cloneEntity.getType())){
+            		cloneEntity.set${cu}(FoxDesensitizedUtil.email(cloneEntity.get${cu}()));
+			} else {			
+            		cloneEntity.set${cu}(FoxDesensitizedUtil.mobilePhone(cloneEntity.get${cu}()));
+			}
+#else
+            cloneEntity.set${cu}(FoxDesensitizedUtil.mobilePhone(cloneEntity.get${cu}()));
+#end
         }
-#elseif(${securityColumn} == "lname")
-        //lname
-        if (StringUtils.isNotBlank(entity.getName())){
-        	int charIndex = entity.getName().indexOf('*');
-        	entity.setLname(charIndex >= 0 ? entity.getName().substring(charIndex) : "");
-        } else {
-        	entity.setLname("");
+#elseif($cc3.contains(${cc})) 
+        if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+            cloneEntity.set${cu}(FoxDesensitizedUtil.fixedPhone(cloneEntity.get${cu}()));
         }
-#elseif(${securityColumn} == "name2")
-        //name2
-        entity.setName2("");
-#elseif(${securityColumn} == "ident")
-        //indent
-        if (StringUtils.isNotBlank(entity.getIdent())){
-            entity.setIdent(FoxDesensitizedUtil.idCardNumByXR(entity.getIdent()));
+#elseif($cc4.contains(${cc})) 
+        if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+            cloneEntity.set${cu}(FoxDesensitizedUtil.email(cloneEntity.get${cu}()));
         }
-#elseif(${securityColumn} == "mobile")
-        //mobile
-         if (StringUtils.isNotBlank(entity.getMobile()) &&  FoxValidateUtil.isPhone(entity.getMobile())){
-            entity.setMobile(FoxDesensitizedUtil.mobilePhone(entity.getMobile()));
+#elseif($cc5.contains(${cc})) 
+        if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+            cloneEntity.set${cu}(FoxDesensitizedUtil.address(cloneEntity.get${cu}()));
         }
-#elseif(${securityColumn} == "phone")
-        //phone
-        if (StringUtils.isNotBlank(entity.getPhone()) &&  FoxValidateUtil.isPhone(entity.getPhone())){
-            entity.setPhone(FoxDesensitizedUtil.mobilePhone(entity.getPhone()));
+#elseif($cc6.contains(${cc})) 
+        if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+            cloneEntity.set${cu}(FoxDesensitizedUtil.bankCard(cloneEntity.get${cu}()));
         }
-#elseif(${securityColumn} == "contactor")
-        // contactor
-        if (StringUtils.isNotBlank(entity.getContactor())){
-            entity.setContactor(FoxDesensitizedUtil.chineseName(entity.getContactor()));
+#elseif($cc7.contains(${cc})) 
+        if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+            cloneEntity.set${cu}(FoxDesensitizedUtil.desensitize(cloneEntity.get${cu}(), 0));
         }
-#elseif(${securityColumn} == "contact_mobile")
-         if (StringUtils.isNotBlank(entity.getContact_mobile()) && FoxValidateUtil.isPhone(entity.getContact_mobile())){
-            entity.setContact_mobile(FoxDesensitizedUtil.mobilePhone(entity.getContact_mobile()));
+#elseif($cc8.contains(${cc})) 
+        if (StringUtils.isNotBlank(cloneEntity.get${cu}())) {
+            cloneEntity.set${cu}(FoxDesensitizedUtil.sex(cloneEntity.get${cu}()));
         }
-#end	
+#else
+		//TODO add logic
 #end
 #end
-        return entity;
+#end    
+        return cloneEntity;
+    }
+    
+    @Override
+    public ${secTable} getSecEntity(Serializable pk) {
+    	return getSecEntity(${secTable}.class, pk);
+    }
+    
+    @Override
+    public String[] getSecColumns() {
+#set($index = 0)
+#foreach (${securityColumn} in ${securityColumns})
+#if(!${securityColumn.isQry()} && !${securityColumn.isSci()})
+#set($index = $index+1)
+#end
+#end
+#if($index == 0)
+		return null;
+#else
+		String[] secColumns = new String[$index];
+#set($index = 0)
+#foreach (${securityColumn} in ${securityColumns})
+#if(!$securityColumn.isQry() && !$securityColumn.isSci())
+#set($co = ${securityColumn.getOriginColumn()})
+		secColumns[$index] = "sec_$co";
+#set($index = $index+1)
+#end    
+#end  	
+    	return secColumns;
+#end
+    }
+    
+    @Override
+    public String[] getQryColumns() {
+#set($index = 0)
+#foreach (${securityColumn} in ${securityColumns})
+#if(${securityColumn.isQry()})
+#set($index = $index+1)
+#end
+#end
+#if($index == 0)
+		return null;
+#else
+		String[] qryColumns = new String[$index];
+#set($index = 0)
+#foreach (${securityColumn} in ${securityColumns})
+#if(${securityColumn.isQry()})
+#set($co = ${securityColumn.getOriginColumn()})
+		qryColumns[$index] = "qry_$co";
+#set($index = $index+1)
+#end    
+#end  	
+    	return qryColumns;
+#end
+    }
+    
+    @Override
+    public String[] getPKColumns() {
+    	String[] pks = new String[$tablePkColumns.size()];
+#if($tablePkColumns.size() == 1)
+		pks[0] = "$tablePk.getName()";
+#elseif($tablePkColumns.size() > 1)
+#set($index = 0)
+#foreach (${column} in ${tablePkColumns})
+		pks[$index] = "${column.getName()}";
+#set($index = $index+1)
+#end
+#end
+		return pks;
+    }
+    
+    @Override
+    public String[] getOriginColumns() {
+    	String[] originColumns = new String[$secColumnCount];
+#set($index = 0)
+#foreach (${securityColumn} in ${securityColumns})
+#if(!$securityColumn.isQry() && !$securityColumn.isSci())
+		originColumns[$index] = "${securityColumn.getOriginColumn()}";
+#set($index = $index+1)
+#end    
+#end  	
+    	return originColumns;
+    }
+    
+        @Override
+    public String[] getExtraQueryColumns() {
+#set($index=0)
+#if(${originTable} == "Master" || ${originTable} == "Guest")
+	#set($index=1)
+#elseif(${originTable} == "Hmaster")
+	#set($index=2)
+#end
+    	String[] originColumns = new String[$index];
+#if(${originTable} == "Master")
+		originColumns[0] = "cat";
+#elseif(${originTable} == "Guest")
+		originColumns[0] = "cls";
+#elseif(${originTable} == "Hmaster")
+		originColumns[0] = "cat";
+		originColumns[1] = "extra";
+#end
+		return originColumns;
+    }
+    
+    /**
+     * 创建初始sec
+     *
+     */
+    @Override
+    public ${secTable} createSecEntity(Serializable pk){
+		${secTable} secent = new ${secTable}();
+        secent.setCby(SessionUtils.getEmpno());
+        secent.setChanged(new Date()); 
+    	
+#if($tablePkColumns.size() == 1)
+        secent.set$tablePk.getCapitalName()(($tablePk.getJavaClass())pk);
+#elseif($tablePkColumns.size() > 1)
+        ${secTable}_PK secpk =  (${secTable}_PK)pk;
+#foreach (${column} in ${tablePkColumns})
+        secent.set$column.getCapitalName()(secpk.get$column.getCapitalName()());
+#end
+#end
+    	return secent;
+    }
+    
+    @Override
+    public Map<String, Object> pkToMap(Serializable pk){
+	    Map<String, Object> pkMap = new HashMap($tablePkColumns.size());
+#if($tablePkColumns.size() == 1)
+		pkMap.put("$tablePk.getName()", pk);
+#elseif($tablePkColumns.size() > 1)
+        ${originTable}_PK entityPk = (${originTable}_PK)pk;
+#foreach (${column} in ${tablePkColumns})
+		pkMap.put("${column.getName()}", entityPk.get${column.getCapitalName()}());
+#end
+#end
+		return pkMap;
+    }
+    
+    @Override
+    public Serializable getPk(${originTable} ent){
+#if($tablePkColumns.size() > 1)
+        ${originTable}_PK entityPk = new ${originTable}_PK();
+#foreach (${column} in ${tablePkColumns})
+		entityPk.set${column.getCapitalName()}(ent.get${column.getCapitalName()}());
+#end
+		return entityPk;
+#else
+		return ent.get${tablePk.getCapitalName()}();
+#end
+    }
+    
+    private boolean solvable(${originTable} ent) {
+#if(${originTable} == "Hmaster")
+		char flag = ent.getExtra() != null && ent.getExtra().length() >= 50 ? ent.getExtra().charAt(49) : '0';
+		return flag != '1';
+#else
+		return true;
+#end
     }
 }

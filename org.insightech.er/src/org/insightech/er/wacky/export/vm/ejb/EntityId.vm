@@ -28,9 +28,9 @@ public class ${tableEntity}${IdSuffix} implements java.io.Serializable {
 	// $column.getDescript()
 #if(${EmbeddedId})
 	@Column($column.getColumnAnnotation())
-	#if(${ColumnDefult} && $column.hasDefault())
+#if(${ColumnDefult} && $column.hasDefault())
 	@ColumnDefault(value="$column.getDefault()") 
-	#end
+#end
 #end
 	@Id 
 	@Column($column.getColumnAnnotation())

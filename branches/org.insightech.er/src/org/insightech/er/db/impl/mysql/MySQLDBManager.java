@@ -61,8 +61,10 @@ public class MySQLDBManager extends DBManagerBase {
 				&& tableProperties instanceof MySQLTableProperties) {
 			return tableProperties;
 		}
-
-		return new MySQLTableProperties();
+		MySQLTableProperties mySQLTableProperties = new MySQLTableProperties();
+		mySQLTableProperties.setCharacterSet("utf8");
+		mySQLTableProperties.setCollation("utf8_bin");
+		return mySQLTableProperties;
 	}
 
 	public DDLCreator getDDLCreator(ERDiagram diagram, Category targetCategory,

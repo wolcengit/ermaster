@@ -152,26 +152,134 @@ public class WackyColumn
      * @return
      */
     public String getOriginColumn() {
+         String name = this.column.getPhysicalName();
+         if (!name.startsWith("sec_") && !name.startsWith("qry_") && !name.startsWith("sci_")){
+        	 return null;
+         }
+         if(name.startsWith("last_qry_")) {
+             return name.substring(9);
+         }
+         return name.substring(4);
+    }
+    
+    public String getOriginColumnCapitalName() {
+    	String originName = getOriginColumn();
+        return originName == null ? "" : this.util.getCapitalName(originName);
+    }
+    
+    /**
+     * 获取加密字段
+     * @return
+     */
+    public String getSecurityColumn() {
     	 String description = this.column.getDescription();
          if (description == null) {
              description = "";
          }
          log(IStatus.INFO, getName()+" 的description:"+description);
+         String name = this.column.getPhysicalName();
          int secOriginIndex= description.indexOf("sec_origin=");
-         int endIndex = -1;
-         if(secOriginIndex != -1) {
-        	 secOriginIndex = secOriginIndex + 10;
-        	 endIndex = description.indexOf(";", secOriginIndex);
-         } else {
-        	 description = this.column.getLogicalName();
-        	 secOriginIndex= description.indexOf("的");
-        	 endIndex = secOriginIndex;
-        	 secOriginIndex = (secOriginIndex > 0 ? 0 : -1);
+         if (secOriginIndex != -1) {
+        	 return name;
+         } 
+         description = this.column.getLogicalName();
+    	 secOriginIndex= description.indexOf("的");
+    	 if ((name.startsWith("sec_") || name.startsWith("qry_") || name.startsWith("sci_")) && secOriginIndex > 0) {
+    		 return name;
+    	 }
+    	 return null;
+    }
+    
+    /**
+     * 是否是全文加密字段
+     * @return
+     */
+    public boolean isSec() {
+    	 String description = this.column.getDescription();
+         if (description == null) {
+             description = "";
          }
-         if (secOriginIndex == -1) {
-        	 return null;
+         log(IStatus.INFO, getName()+" 的description:"+description);
+         String name = this.column.getPhysicalName();
+         int secOriginIndex= description.indexOf("sec_origin=");
+         if (secOriginIndex != -1) {
+        	 return name.startsWith("sec_");
+         } 
+         description = this.column.getLogicalName();
+    	 secOriginIndex= description.indexOf("的");
+    	 if ((name.startsWith("sec_")|| name.startsWith("qry_")) && secOriginIndex > 0) {
+    		 return name.startsWith("sec");
+    	 }
+    	 return false;
+    }
+    
+    /**
+     * 是否是模糊查询字段
+     * @return
+     */
+    public boolean isQry() {
+    	 String description = this.column.getDescription();
+         if (description == null) {
+             description = "";
          }
-         return description.substring(secOriginIndex, endIndex);
+         log(IStatus.INFO, getName()+" 的description:"+description);
+         String name = this.column.getPhysicalName();
+         int secOriginIndex= description.indexOf("sec_origin=");
+         if (secOriginIndex != -1) {
+        	 return name.startsWith("qry_");
+         } 
+         description = this.column.getLogicalName();
+    	 secOriginIndex= description.indexOf("的");
+    	 if (name.startsWith("qry_") && secOriginIndex > 0) {
+    		 return name.startsWith("qry_");
+    	 }
+    	 return false;
+    }
+    
+    /**
+     * 是否是后几位查询字段
+     * @return
+     */
+    public boolean isLastQry() {
+    	 String description = this.column.getDescription();
+         if (description == null) {
+             description = "";
+         }
+         log(IStatus.INFO, getName()+" 的description:"+description);
+         String name = this.column.getPhysicalName();
+         int secOriginIndex= description.indexOf("sec_origin=");
+         if (secOriginIndex != -1) {
+        	 return name.startsWith("last_qry_");
+         } 
+         description = this.column.getLogicalName();
+    	 secOriginIndex= description.indexOf("的");
+    	 if (name.startsWith("last_qry_") && secOriginIndex > 0) {
+    		 return name.startsWith("last_qry_");
+    	 }
+    	 return false;
+    }
+    
+    /**
+     * 是否是摘要字段
+     * @return
+     */
+    public boolean isSci() {
+    	 String description = this.column.getDescription();
+         if (description == null) {
+             description = "";
+         }
+         log(IStatus.INFO, getName()+" 的description:"+description);
+         String name = this.column.getPhysicalName();
+         int secOriginIndex= description.indexOf("sci_origin=");
+         if (secOriginIndex != -1) {
+        	 return name.startsWith("sci_");
+         } 
+         description = this.column.getLogicalName();
+    	 secOriginIndex= description.indexOf("的");
+    	 if (name.startsWith("sci_") && secOriginIndex > 0) {
+    		 return name.startsWith("sci_");
+    	 }
+    	 return false;
     }
     
     protected DBManager getDBManager() {

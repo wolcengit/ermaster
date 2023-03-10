@@ -4,6 +4,8 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 #foreach (${packge} in ${tableAllPackages}) 
 import ${packge};
@@ -30,6 +32,8 @@ ${tablePKDescript}
 public class ${tableEntity} implements java.io.Serializable,Cloneable {
 
 	private static final long serialVersionUID = 1L;
+	
+	private static final Logger logger = LoggerFactory.getLogger(${tableEntity}.class);
 
 #foreach (${column} in ${tableAllColumns}) 
 	// $column.getDescript()
@@ -37,9 +41,9 @@ public class ${tableEntity} implements java.io.Serializable,Cloneable {
 	@Id 
 #end
 	@Column($column.getColumnAnnotation())
-	#if(${ColumnDefult} && $column.hasDefault())
+#if(${ColumnDefult} && $column.hasDefault())
 	@ColumnDefault(value="$column.getDefault()") 
-	#end
+#end
 	private $column.getJavaClass() $column.getName();
 #end
 
@@ -85,7 +89,7 @@ public class ${tableEntity} implements java.io.Serializable,Cloneable {
 		try{
 			inst = super.clone();
 		}catch (Exception e) {
-			e.printStackTrace();
+			logger.error("Entity.clone error!", e);
 		}
 		return inst;
 	}

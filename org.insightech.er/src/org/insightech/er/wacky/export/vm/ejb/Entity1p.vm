@@ -5,6 +5,8 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 #foreach (${packge} in ${tableAllPackages}) 
 import ${packge};
@@ -23,15 +25,17 @@ public abstract class Abstract${tableEntity} implements java.io.Serializable,Clo
 
 	private static final long serialVersionUID = 1L;
 
+	private static final Logger logger = LoggerFactory.getLogger(Abstract${tableEntity}.class);
+
 #foreach (${column} in ${tableAllColumns}) 
 	// $column.getDescript()
 #if($column.isPk())
 	@Id 
 #end
 	@Column($column.getColumnAnnotation())
-	#if(${ColumnDefult} && $column.hasDefault())
+#if(${ColumnDefult} && $column.hasDefault())
 	@ColumnDefault(value="$column.getDefault()") 
-	#end
+#end
 	private $column.getJavaClass() $column.getName();
 #end
 
@@ -77,7 +81,7 @@ public abstract class Abstract${tableEntity} implements java.io.Serializable,Clo
 		try{
 			inst = super.clone();
 		}catch (Exception e) {
-			e.printStackTrace();
+			logger.error("Entity.clone error!", e);
 		}
 		return inst;
 	}

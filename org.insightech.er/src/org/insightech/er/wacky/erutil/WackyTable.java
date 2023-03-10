@@ -2,10 +2,14 @@ package org.insightech.er.wacky.erutil;
 
 import org.insightech.er.wacky.export.*;
 import org.insightech.er.editor.model.diagram_contents.element.node.table.*;
+import org.insightech.er.ERDiagramActivator;
 import org.insightech.er.editor.model.*;
 import org.insightech.er.editor.model.diagram_contents.element.node.table.column.*;
 import java.util.*;
 import org.apache.commons.lang.*;
+import org.eclipse.core.runtime.ILog;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 
 public class WackyTable
 {
@@ -72,10 +76,14 @@ public class WackyTable
                     this.notPkColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
                 }
                 this.util.getImportPackges(column.getType(), this.allPageages);
-                if (ct.equals("byte[]")) {
-                    continue;
+                if (!ct.equals("byte[]")) {
+                    this.findColumns.add(new WackyColumn(column, true, this.diagram, this.util));
                 }
-                this.findColumns.add(new WackyColumn(column, true, this.diagram, this.util));
+                if(column.getPhysicalName().startsWith("sec_") || column.getPhysicalName().startsWith("qry_") || column.getPhysicalName().startsWith("sci_")){
+                	continue;
+                }
+                this.allColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
+                this.notPkColumnsNoSec.add(new WackyColumn(column, column.isPrimaryKey(), this.diagram, this.util));
             }
         }
         if (table.getPrimaryKeySize() == 1) {
@@ -312,4 +320,28 @@ public class WackyTable
     	}
     	return columns;
     }
+    
+    /**
+     * 获取当前表需要加密的字段源集
+     * @return
+     */
+    public List<WackyColumn> getSecurityColumns(){
+    	List<WackyColumn> columns = null;
+    	for (WackyColumn wackyColumn : allColumns) {
+    		String securityColumn = wackyColumn.getSecurityColumn();
+    		if (securityColumn == null) {
+    			continue;
+    		}
+    		if (columns == null) {
+    			columns = new ArrayList();
+    		}
+    		columns.add(wackyColumn);
+    	}
+    	return columns;
+    }
+    
+    public void log(final int level, final String text) {
+		final ILog log = ERDiagramActivator.getDefault().getLog();
+		log.log((IStatus) new Status(level, "org.insightech.er.wacky", text));
+	}
 }

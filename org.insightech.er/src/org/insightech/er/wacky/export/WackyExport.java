@@ -184,6 +184,7 @@ public class WackyExport {
 			extraSecTables.add("doorcard_req");
 			extraSecTables.add("gltemp");
 			extraSecTables.add("guest");
+			extraSecTables.add("guest_backup");
 			extraSecTables.add("haccount");
 			extraSecTables.add("haccount_a");
 			extraSecTables.add("haccount_c");
@@ -398,11 +399,14 @@ public class WackyExport {
 					try {
 						this.context.put("securityColumns",wt3.getSecurityColumns());
 						List<String> qryColumns = new ArrayList();
+						Map<String, Integer> qryLengthMap = new HashMap();
 						for (WackyColumn wackyColumn : wt3.getSecurityColumns()) {
 							if (wackyColumn.isQry()) {
 								qryColumns.add(wackyColumn.getOriginColumn());
+								qryLengthMap.put(wackyColumn.getOriginColumn(), wackyColumn.getLength());
 							}
 						}
+						this.context.put("qryColumnLengthMap",qryLengthMap);
 						this.context.put("qryColumns",qryColumns);
 						String className = null;
 						if(!tableEntity3.toLowerCase().startsWith("foxsec_")) {

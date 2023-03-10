@@ -1,0 +1,269 @@
+package com.foxhis.entity.processer;
+import com.foxhis.utils.FoxValidateUtil;
+import com.foxhis.utils.FoxDesensitizedUtil;
+import com.foxhis.utils.SessionUtils;
+import org.apache.commons.lang.StringUtils;
+import java.util.Date;
+import java.util.Objects;
+import java.util.List;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import com.foxhis.utils.FoxMessageDigestUtils;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Component;
+
+@Transactional(rollbackFor=Exception.class)
+@Component(name="$tableName.toLowerCase()-init")
+public class ${tableName}_SecurityInitProcesser extends AbstractFoxSecurityInitProcesser<${originTable}, ${secTable}> {
+#set($cc1 = ",name,name1,name2,name4,contactor,guestname,empnoname,saleid_name,cusname,cusno_des,agent_des,source_des,group_des,groupno_des,receipname,cby_name,")
+#set($cc1_1 = ",applname,usename,accntname,invoicename,accntname1,workername,empname,reportname,pmsname,attname,attname2,cbyname,unitname,htlname,owner_name,guide_name,dsb_name,")
+#set($cc1_2 = ",contractname,holdname,signname,invoicename,hname,haccntname,signname2,guest_name,haccnt_des,worker,wokername,reportname,pmsname,ename,contractname,salename,resname,")
+#set($cc1_3 = ",collector,contacter,res_name,groupname,resbyname,competitor_name,realname,sourcename,agentname,cplperson,signby_des,findman,dealman,")
+#set($cc2 = ",mobile,phone,contact_mobile,contactor_mobile,tele_phone,addressee,receipmobile,applymobile,usemobile,accept_mobile,warning_mobile,reviewer_mobile,dsb_mobile,")
+#set($cc2_1 = ",guest_phone,linkmobile,wlmobile,cplman_phone,accept_mobile,receiver,")
+#set($cc3 = ",tel,telephone,")
+#set($cc4 = ",email,receipemail,contact_email,")
+#set($cc5 = ",address,address2,street,mailing_address,guest_address,address1,")
+#set($cc6 = ",bankcode,")
+#set($cc7 = ",fname,")
+#set($cc8 = ",sex,sex_des,race,race_des,")
+
+#set($secColumnCount=0)
+#foreach (${securityColumn} in ${securityColumns})
+	#if(!${securityColumn.isQry()} && !${securityColumn.isSci()})
+		#set($secColumnCount = $secColumnCount+1)
+	#end
+#end
+    @Override
+    public boolean processed(Serializable pk){
+    	String sql = "select 1 from ${secTable.toLowerCase()} where ";
+	    QueryParameters parameters = new QueryParameters();
+	    if (pk != null){
+#if($tablePkColumns.size() == 1)
+			sql+= " $tablePk.getName()=:$tablePk.getName() and ";
+			parameters.addParameter("$tablePk.getName()", pk);
+#elseif($tablePkColumns.size() > 1)
+	        ${originTable}_PK entityPk = (${originTable}_PK)pk;
+	#foreach (${column} in ${tablePkColumns})
+	       	sql+= " ${column.getName()}=:${column.getName()} and ";
+			parameters.addParameter("${column.getName()}", entityPk.get${column.getCapitalName()}());
+	#end
+#end
+	    }
+#set($index = 1)    
+#foreach (${securityColumn} in ${securityColumns})
+	#if(!${securityColumn.isQry()} && !${securityColumn.isSci()})
+		sql+= " sec_${securityColumn.getOriginColumn()} is not null #if($index < $secColumnCount) and #end ";
+	#set($index = $index+1)
+	#end
+#end
+#set($index = 0)  
+		sql+= " order by #if($tablePkColumns.size() == 1) $tablePk.getName() asc #elseif($tablePkColumns.size() > 1)#foreach (${column} in ${tablePkColumns})#if($index > 0), #end${column.getName()} asc #set($index = $index+1)#end #end ";
+		sql+= " limit 0,1 ";
+		SQLFacadeBase sqlFacadeBase = EjbFacadeUtil.getFacadeLocal(SQLFacadeBase.class);
+		Object ret = sqlFacadeBase.getSingleResult(sql, parameters);		
+		return Objects.equals(ret, 1);
+    }
+
+ 	@Override
+    public String desensitize(String columnName, String value, String entType) {
+    	if (StringUtils.isBlank(value)) {
+    		return "";
+    	}
+		switch(columnName) {
+#foreach (${securityColumn} in ${securityColumns})
+	#if(!$securityColumn.isQry() && !$securityColumn.isSci())
+		#set($co = ${securityColumn.getOriginColumn()})
+		#set($cc = ","+${securityColumn.getOriginColumn()}+",")
+			case "${securityColumn.getOriginColumn()}": {
+		#if("ident" == ${co})
+        		return FoxDesensitizedUtil.idCardNumByXR(value);
+		#elseif($cc1.contains(${cc}) || $cc1_1.contains(${cc}) || $cc1_2.contains(${cc}) || $cc1_3.contains(${cc}))
+				return FoxDesensitizedUtil.chineseName(value);      
+		#elseif($cc2.contains(${cc}) || $cc2_1.contains(${cc}))
+			#if((${originTable} == "Message_send") || (${originTable} == "Hmessage_send"))
+				if("EMAIL".equals(entType)){
+					 return FoxDesensitizedUtil.email(value);
+				} else {			
+        			return FoxDesensitizedUtil.mobilePhone(value);
+				}
+			#else
+        		return FoxDesensitizedUtil.mobilePhone(value);
+			#end
+		#elseif($cc3.contains(${cc}))
+        		return FoxDesensitizedUtil.fixedPhone(value);
+		#elseif($cc4.contains(${cc}))
+        		return FoxDesensitizedUtil.email(value);
+		#elseif($cc5.contains(${cc}))
+        		return FoxDesensitizedUtil.address(value);
+		#elseif($cc6.contains(${cc}))
+        		return FoxDesensitizedUtil.bankCard(value);
+		#elseif($cc7.contains(${cc}))
+        		return FoxDesensitizedUtil.desensitize(value, 0);
+		#elseif($cc8.contains(${cc}))
+        		return FoxDesensitizedUtil.sex(value);
+		#else
+		//TODO add logic
+		#end
+			}
+	#end
+#end  				
+			default : {
+				return value;
+			}
+		}
+    }
+
+    @Override
+    public String[] getSecColumns() {
+#set($index = 0)
+#foreach (${securityColumn} in ${securityColumns})
+	#if(!${securityColumn.isQry()} && !${securityColumn.isSci()})
+		#set($index = $index+1)
+	#end
+#end
+#if($index == 0)
+		return null;
+#else
+		String[] secColumns = new String[$index];
+#set($index = 0)
+#foreach (${securityColumn} in ${securityColumns})
+	#if(!$securityColumn.isQry() && !$securityColumn.isSci())
+		#set($co = ${securityColumn.getOriginColumn()})
+		secColumns[$index] = "sec_$co";
+		#set($index = $index+1)
+	#end
+#end  	
+    	return secColumns;
+#end
+    }
+    
+    @Override
+    public String[] getQryColumns() {
+#set($index = 0)
+#foreach (${securityColumn} in ${securityColumns})
+	#if(${securityColumn.isQry()})
+		#set($index = $index+1)
+	#end
+#end
+#if($index == 0)
+		return null;
+#else
+		String[] qryColumns = new String[$index];
+	#set($index = 0)
+	#foreach (${securityColumn} in ${securityColumns})
+		#if(${securityColumn.isQry()})
+			#set($co = ${securityColumn.getOriginColumn()})
+		qryColumns[$index] = "qry_$co";
+			#set($index = $index+1)
+		#end
+	#end
+    	return qryColumns;
+#end
+    }
+    
+    @Override
+    public String[] getPKColumns() {
+    	String[] pks = new String[$tablePkColumns.size()];
+#if($tablePkColumns.size() == 1)
+		pks[0] = "$tablePk.getName()";
+#elseif($tablePkColumns.size() > 1)
+	#set($index = 0)
+	#foreach (${column} in ${tablePkColumns})
+		pks[$index] = "${column.getName()}";
+		#set($index = $index+1)
+	#end
+#end
+		return pks;
+    }
+    
+    @Override
+    public String[] getOriginColumns() {
+    	String[] originColumns = new String[$secColumnCount];
+#set($index = 0)
+#foreach (${securityColumn} in ${securityColumns})
+	#if(!$securityColumn.isQry() && !$securityColumn.isSci())
+		originColumns[$index] = "${securityColumn.getOriginColumn()}";
+		#set($index = $index+1)
+	#end
+#end  	
+    	return originColumns;
+    }
+    
+	@Override
+    public String[] getExtraQueryColumns() {
+#set($index=0)
+#if(${originTable} == "Master" || ${originTable} == "Guest")
+	#set($index=1)
+#elseif(${originTable} == "Hmaster")
+	#set($index=2)
+#end
+    	String[] originColumns = new String[$index];
+#if(${originTable} == "Master")
+		originColumns[0] = "cat";
+#elseif(${originTable} == "Guest")
+		originColumns[0] = "cls";
+#elseif(${originTable} == "Hmaster")
+		originColumns[0] = "cat";
+		originColumns[1] = "extra";
+#end
+		return originColumns;
+    }
+
+	@Override
+	public Map<String,String> doSecurity(Map<String,String> values) {
+		Map<String,String> rslts = new HashMap<>();
+
+#foreach (${securityColumn} in ${securityColumns})
+	#if(${securityColumn.isQry()})
+		#set($co = ${securityColumn.getOriginColumn()})
+		// qry_${co}
+		#set($qryColumnLength = ${qryColumnLengthMap.get($co)})
+		#set($maxSizeLength=$qryColumnLength/25)
+		String qry${cu} = values.get("$co");
+		if(qry${cu}.length() > $maxSizeLength){
+			qry${cu} = qry${cu}.substring(0, $maxSizeLength);
+		}
+		#if("ident" == ${co})
+		String nencQry${cu} = FoxSecurityHelper.encodeForQueryIdentColumn(qry${cu});
+		#elseif($cc2.contains(${cc}) || $cc2_1.contains(${cc}))
+			#if((${originTable} == "Message_send") || (${originTable} == "Hmessage_send"))
+		String nencQry${cu} = null;
+		if("EMAIL".equals(ent.getType())){
+			nencQry${cu} = FoxSecurityHelper.encodeForNormalQueryColumn(qry${cu});
+		} else {
+			nencQry${cu} = FoxSecurityHelper.encodeForQueryMobileColumn(qry${cu});
+		}
+			#else
+		String nencQry${cu} = FoxSecurityHelper.encodeForQueryMobileColumn(qry${cu});
+			#end
+		#else
+		String nencQry${cu} = FoxSecurityHelper.encodeForNormalQueryColumn(qry${cu});
+		#end
+		rslts.put("qry_${co}",nencQry${cu});
+	#end
+#end
+
+#foreach (${securityColumn} in ${securityColumns})
+	#if(${securityColumn.isSci()})
+		#set($co = ${securityColumn.getOriginColumn()})
+		String new${cu} = values.get("$co");
+		String newSci${cu} = "".equals(new${cu}) ? new${cu} : FoxMessageDigestUtils.SM3Hex(new${cu}.getBytes());
+		rslts.put("sci_${co}",newSci${cu});
+	#end
+#end
+
+#foreach (${securityColumn} in ${securityColumns})
+		String org${cu} = values.get("$co");
+		if (StringUtils.isNotBlank(org${cu})) {
+			org${cu} = desensitize("$co", org${cu}, values.get("type")));
+		}
+		rslts.put("${co}",org${cu});
+#end
+		return rslts;
+	}
+
+
+}
